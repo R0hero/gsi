@@ -7,7 +7,7 @@ name = "gsi"
 version = "0.0.1"
 description = "Geodetic Scene Illustrator: A Python package for creating geodetic illustrations"
 authors = [
-    {name = "bbyel"}
+    {name = "Benjamin Elsholm"}
 ]
 dependencies = [
     "numpy>=2.3.2",
