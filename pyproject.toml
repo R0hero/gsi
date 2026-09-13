@@ -10,7 +10,7 @@ authors = [
     {name = "bbyel"}
 ]
 dependencies = [
-    "numpy",
-    "matplotlib",
-    "shapely",
+    "numpy>=2.3.2",
+    "matplotlib>=3.10.6",
+    "shapely>=2.1.1",
 ]
