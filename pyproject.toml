@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gsi"
+version = "0.0.1"
+description = "Geodetic Scene Illustrator: A Python package for creating geodetic illustrations"
+authors = [
+    {name = "Benjamin Elsholm"}
+]
+dependencies = [
+    "numpy>=2.3.2",
+    "matplotlib>=3.10.6",
+    "shapely>=2.1.1",
+]

@@ -4,3 +4,10 @@ This project is created in order to ease the process of creating figures in geod
 Please cite this repository if you are using the code to create figures for your project. 
 
 Feel free to contribute to the project.
+
+## Installation
+
+Install latest stable version:
+```cli
+pip install git+https://github.com/r0hero/gsi.git@main
+```
