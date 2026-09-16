@@ -1,4 +1,4 @@
-from .enums import ReflectionType, GroundType
+from .enums import ReflectionType, GroundType, TreeType
 
 import matplotlib.patches as mpatches
        
