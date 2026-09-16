@@ -122,6 +122,15 @@ class Tree:
 
         self.treetype = TreeType._value2member_map_[treetype]
 
+    def _plot_deciduous(self, ax):
+        pass
+
+    def _plot_conifer(self, ax):
+        pass
+
+    def _plot_poplar(self, ax):
+        pass
+
     def plot(self, ax, 
              alpha: float = 1,
              n_lobes: int = 6, lobe_radius_ratio: float = 0.5, seed: int = 0, 
