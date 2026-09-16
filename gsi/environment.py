@@ -107,5 +107,17 @@ class Ground:
             ax.axhline(y=self.height,color=color, linewidth=linewidth, linestyle=linestyle)
 
 class Tree:
-    def __init__(self, ):
-        pass
+    def __init__(self, position: tuple, height: float, 
+                 trunk_width: float = None, canopy_width: float = None, 
+                 treetype: str = 'Deciduous'):
+        self.position = position
+        self.height = height
+
+        self.trunk_width = trunk_width if trunk_width != None else 0.08*height
+        self.canopy_width = canopy_width if canopy_width != None else 0.75*height
+
+        if treetype not in TreeType._value2member_map_:
+            valid_types = ', '.join([f"'{r.value}'" for r in TreeType])
+            raise ValueError(f"Unknown tree type '{treetype}'. Use {valid_types}.")
+
+        self.treetype = TreeType._value2member_map_[treetype]
