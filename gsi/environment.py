@@ -105,3 +105,7 @@ class Ground:
         if self.groundtype == GroundType.COMMON:
             # plot the ground as a simple line
             ax.axhline(y=self.height,color=color, linewidth=linewidth, linestyle=linestyle)
+
+class Tree:
+    def __init__(self, ):
+        pass
