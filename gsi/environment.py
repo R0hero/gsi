@@ -121,3 +121,15 @@ class Tree:
             raise ValueError(f"Unknown tree type '{treetype}'. Use {valid_types}.")
 
         self.treetype = TreeType._value2member_map_[treetype]
+
+    def plot(self, ax, 
+             alpha: float = 1,
+             n_lobes: int = 6, lobe_radius_ratio: float = 0.5, seed: int = 0, 
+             n_tiers: int = 3, tier_overlap: float = 0.35):
+        """plots the tree at given position based on the selected tree type"""
+        if self.treetype == TreeType.DECIDUOUS:
+            self._plot_deciduous(ax)
+        elif self.TreeType == TreeType.CONIFER:
+            self._plot_conifer(ax)
+        elif self.TreeType == TreeType.POPLAR:
+            self._plot_poplar(ax)
