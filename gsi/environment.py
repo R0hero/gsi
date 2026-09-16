@@ -122,8 +122,10 @@ class Tree:
 
         self.treetype = TreeType._value2member_map_[treetype]
 
-    def _plot_deciduous(self, ax):
-        pass
+    def _plot_deciduous(self, ax, alpha, n_lobes, lobe_radius_ratio, seed):
+        """plots a round, organic canopy"""
+        trunk_height = self.height * 0.35
+        
 
     def _plot_conifer(self, ax):
         pass
@@ -137,7 +139,7 @@ class Tree:
              n_tiers: int = 3, tier_overlap: float = 0.35):
         """plots the tree at given position based on the selected tree type"""
         if self.treetype == TreeType.DECIDUOUS:
-            self._plot_deciduous(ax)
+            self._plot_deciduous(ax, alpha, n_lobes, lobe_radius_ratio, seed)
         elif self.TreeType == TreeType.CONIFER:
             self._plot_conifer(ax)
         elif self.TreeType == TreeType.POPLAR:
