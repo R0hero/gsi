@@ -131,8 +131,9 @@ class Tree:
         """plots a stacked-triangle canopy"""
         trunk_height = self.height * 0.35
 
-    def _plot_poplar(self, ax):
-        pass
+    def _plot_poplar(self, ax, alpha):
+        """plots a tall, narrow canopy"""
+        trunk_height = self.height * 0.35
 
     def plot(self, ax, 
              alpha: float = 1,
@@ -144,4 +145,4 @@ class Tree:
         elif self.TreeType == TreeType.CONIFER:
             self._plot_conifer(ax, alpha, n_tiers, tier_overlap)
         elif self.TreeType == TreeType.POPLAR:
-            self._plot_poplar(ax)
+            self._plot_poplar(ax, alpha)
