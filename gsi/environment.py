@@ -122,10 +122,13 @@ class Tree:
 
         self.treetype = TreeType._value2member_map_[treetype]
 
+    def _plot_trunk(self, ax, trunk_height, alpha, facecolor='gray'):
+        """plots the trunk"""
+        pass
+
     def _plot_deciduous(self, ax, alpha, n_lobes, lobe_radius_ratio, seed):
         """plots a round, organic canopy"""
         trunk_height = self.height * 0.35
-        
 
     def _plot_conifer(self, ax, alpha, n_tiers, tier_overlap):
         """plots a stacked-triangle canopy"""
