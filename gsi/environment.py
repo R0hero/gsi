@@ -1,6 +1,9 @@
 from .enums import ReflectionType, GroundType, TreeType
 
 import matplotlib.patches as mpatches
+from shapely.geometry import Point
+from shapely.ops import unary_union
+import numpy as np
        
 class Building:
     def __init__(self, position : tuple, height : float, width : float,
@@ -133,6 +136,25 @@ class Tree:
     def _plot_deciduous(self, ax, alpha, n_lobes, lobe_radius_ratio, seed):
         """plots a round, organic canopy"""
         trunk_height = self.height * 0.35
+        canopy_base_y = self._plot_trunk(ax, trunk_height)
+
+        canopy_radius = (self.height - trunk_height) / 2
+        canopy_center = (self.position[0], canopy_base_y + canopy_radius)
+
+        rng = np.random.default_rng(seed)
+        angles = np.linspace(0, 2*np.pi, n_lobes, endpoint=False) + rng.uniform(-0.2, 0.2, n_lobes)
+        radial_jitter = rng.uniform(0.85, 1.15, n_lobes)
+
+        circles = [Point(canopy_center).buffer(canopy_radius * 0.72)]
+        for angle, jitter in zip(angles, radial_jitter):
+            offset = (canopy_radius * 0.5 * jitter * np.cos(angle),
+                      canopy_radius * 0.5 * jitter * np.sin(angle))
+            lobe_center = tuple(c + o for c, o in zip(canopy_center, offset))
+            circles.append(Point(lobe_center).buffer(canopy_radius * lobe_radius_ratio * jitter))
+
+        union_shape = unary_union(circles)
+        x, y = union_shape.exterior.xy
+        ax.fill(x, y, facecolor='lightgray', edgecolor='black', linewidth=1, zorder=3, alpha=alpha)
 
     def _plot_conifer(self, ax, alpha, n_tiers, tier_overlap):
         """plots a stacked-triangle canopy"""
