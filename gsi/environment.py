@@ -136,7 +136,7 @@ class Tree:
     def _plot_deciduous(self, ax, alpha, n_lobes, lobe_radius_ratio, seed):
         """plots a round, organic canopy"""
         trunk_height = self.height * 0.35
-        canopy_base_y = self._plot_trunk(ax, trunk_height)
+        canopy_base_y = self._plot_trunk(ax, trunk_height, alpha)
 
         canopy_radius = (self.height - trunk_height) / 2
         canopy_center = (self.position[0], canopy_base_y + canopy_radius)
