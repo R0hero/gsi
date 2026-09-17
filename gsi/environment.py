@@ -124,7 +124,11 @@ class Tree:
 
     def _plot_trunk(self, ax, trunk_height, alpha, facecolor='gray'):
         """plots the trunk"""
-        pass
+        trunk_position = (self.position[0] - self.trunk_width/2, self.position[1])
+        trunk = mpatches.Rectangle(trunk_position, self.trunk_width, trunk_height, 
+                                   facecolor=facecolor, edgecolor='black', zorder=2)
+        ax.add_patch(trunk)
+        return self.position[1] + trunk_height
 
     def _plot_deciduous(self, ax, alpha, n_lobes, lobe_radius_ratio, seed):
         """plots a round, organic canopy"""
