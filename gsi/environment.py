@@ -126,7 +126,7 @@ class Tree:
         """plots the trunk"""
         trunk_position = (self.position[0] - self.trunk_width/2, self.position[1])
         trunk = mpatches.Rectangle(trunk_position, self.trunk_width, trunk_height, 
-                                   facecolor=facecolor, edgecolor='black', zorder=2)
+                                   facecolor=facecolor, edgecolor='black', zorder=2, alpha=alpha)
         ax.add_patch(trunk)
         return self.position[1] + trunk_height
 
