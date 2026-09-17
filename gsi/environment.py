@@ -174,7 +174,7 @@ class Tree:
         """plots the tree at given position based on the selected tree type"""
         if self.treetype == TreeType.DECIDUOUS:
             self._plot_deciduous(ax, alpha, n_lobes, lobe_radius_ratio, trunk_canopy_overlap, seed)
-        elif self.TreeType == TreeType.CONIFER:
+        elif self.treetype == TreeType.CONIFER:
             self._plot_conifer(ax, alpha, n_tiers, tier_overlap)
-        elif self.TreeType == TreeType.POPLAR:
+        elif self.treetype == TreeType.POPLAR:
             self._plot_poplar(ax, alpha)
