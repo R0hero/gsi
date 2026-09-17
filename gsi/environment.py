@@ -133,13 +133,16 @@ class Tree:
         ax.add_patch(trunk)
         return self.position[1] + trunk_height
 
-    def _plot_deciduous(self, ax, alpha, n_lobes, lobe_radius_ratio, seed):
+    def _plot_deciduous(self, ax, alpha, n_lobes, lobe_radius_ratio, trunk_canopy_overlap, seed):
         """plots a round, organic canopy"""
         trunk_height = self.height * 0.35
-        canopy_base_y = self._plot_trunk(ax, trunk_height, alpha)
+        canopy_base_y = self.position[1] + trunk_height
 
         canopy_radius = (self.height - trunk_height) / 2
         canopy_center = (self.position[0], canopy_base_y + canopy_radius)
+
+        visual_trunk_height = trunk_height + canopy_radius * trunk_canopy_overlap
+        self._plot_trunk(ax, visual_trunk_height, alpha)
 
         rng = np.random.default_rng(seed)
         angles = np.linspace(0, 2*np.pi, n_lobes, endpoint=False) + rng.uniform(-0.2, 0.2, n_lobes)
@@ -166,11 +169,11 @@ class Tree:
 
     def plot(self, ax, 
              alpha: float = 1,
-             n_lobes: int = 6, lobe_radius_ratio: float = 0.5, seed: int = 0, 
+             n_lobes: int = 6, lobe_radius_ratio: float = 0.5, trunk_canopy_overlap: float = 0.5, seed: int = 0, 
              n_tiers: int = 3, tier_overlap: float = 0.35):
         """plots the tree at given position based on the selected tree type"""
         if self.treetype == TreeType.DECIDUOUS:
-            self._plot_deciduous(ax, alpha, n_lobes, lobe_radius_ratio, seed)
+            self._plot_deciduous(ax, alpha, n_lobes, lobe_radius_ratio, trunk_canopy_overlap, seed)
         elif self.TreeType == TreeType.CONIFER:
             self._plot_conifer(ax, alpha, n_tiers, tier_overlap)
         elif self.TreeType == TreeType.POPLAR:
