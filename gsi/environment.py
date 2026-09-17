@@ -162,6 +162,24 @@ class Tree:
     def _plot_conifer(self, ax, alpha, n_tiers, tier_overlap):
         """plots a stacked-triangle canopy"""
         trunk_height = self.height * 0.35
+        base_y = self._plot_trunk(ax, trunk_height, alpha)
+
+        remaining_height = self.height - trunk_height
+        tier_height = remaining_height / (n_tiers - (n_tiers - 1) * tier_overlap)
+
+        y = base_y
+        for i in range(n_tiers):
+            tier_width = self.canopy_width * (1 - i / n_tiers*0.6)
+            apex_y = y + tier_height
+            triangle = mpatches.Polygon([
+                (self.position[0] - tier_width / 2, y),
+                (self.position[0] + tier_width / 2, y),
+                (self.position[0], apex_y)
+            ],
+            closed=True, facecolor='lightgray', edgecolor='black', zorder=3*i, alpha=alpha)
+            ax.add_patch(triangle)
+            y += tier_height * (1 - tier_overlap)
+
 
     def _plot_poplar(self, ax, alpha):
         """plots a tall, narrow canopy"""
