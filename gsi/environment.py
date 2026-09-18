@@ -181,9 +181,22 @@ class Tree:
             y += tier_height * (1 - tier_overlap)
 
 
-    def _plot_poplar(self, ax, alpha):
+    def _plot_poplar(self, ax, alpha, trunk_canopy_overlap):
         """plots a tall, narrow canopy"""
-        trunk_height = self.height * 0.35
+        trunk_height = self.height * 0.35        
+        canopy_base_y = self.position[1] + trunk_height
+
+        canopy_radius = (self.height - trunk_height) / 2
+        canopy_center = (self.position[0], canopy_base_y + canopy_radius)
+
+        visual_trunk_height = trunk_height + canopy_radius * trunk_canopy_overlap
+        self._plot_trunk(ax, visual_trunk_height, alpha)
+
+        canopy_height = self.height - trunk_height
+        canopy_center = (self.position[0], canopy_base_y + canopy_height / 2)
+        canopy = mpatches.Ellipse(canopy_center, width=self.canopy_width * 0.5, height=canopy_height, 
+                                  facecolor='lightgray', edgecolor='black', zorder=3, alpha=alpha)
+        ax.add_patch(canopy)
 
     def plot(self, ax, 
              alpha: float = 1,
@@ -195,4 +208,4 @@ class Tree:
         elif self.treetype == TreeType.CONIFER:
             self._plot_conifer(ax, alpha, n_tiers, tier_overlap)
         elif self.treetype == TreeType.POPLAR:
-            self._plot_poplar(ax, alpha)
+            self._plot_poplar(ax, alpha, trunk_canopy_overlap)
