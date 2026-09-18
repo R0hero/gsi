@@ -1,8 +1,9 @@
 from .enums import ReflectionType, GroundType, TreeType
 
 import matplotlib.patches as mpatches
-from shapely.geometry import Point
+from shapely.geometry import Point, box
 from shapely.ops import unary_union
+from shapely.affinity import scale
 import numpy as np
        
 class Building:
@@ -124,6 +125,7 @@ class Tree:
             raise ValueError(f"Unknown tree type '{treetype}'. Use {valid_types}.")
 
         self.treetype = TreeType._value2member_map_[treetype]
+        self.geometry = None
 
     def _plot_trunk(self, ax, trunk_height, alpha, facecolor='gray'):
         """plots the trunk"""
@@ -158,6 +160,9 @@ class Tree:
         union_shape = unary_union(circles)
         x, y = union_shape.exterior.xy
         ax.fill(x, y, facecolor='lightgray', edgecolor='black', linewidth=1, zorder=3, alpha=alpha)
+
+        trunk_rect = box(self.position[0] - self.trunk_width/2, self.position[1], self.position[0] + self.trunk_width/2, self.position[1] + trunk_height)
+        self.geometry = unary_union([trunk_rect, union_shape])
 
     def _plot_conifer(self, ax, alpha, n_tiers, tier_overlap):
         """plots a stacked-triangle canopy"""
