@@ -214,3 +214,9 @@ class Tree:
             self._plot_conifer(ax, alpha, n_tiers, tier_overlap)
         elif self.treetype == TreeType.POPLAR:
             self._plot_poplar(ax, alpha, trunk_canopy_overlap)
+
+    def get_geometry(self, ):
+        """function to return silhouette of tree. Note, plot() must be called on tree before this is available."""
+        if self.geometry == None:
+            raise RuntimeError("Tree geometry is not available untill tree has been plotted (using .plot()).")
+        return self.geometry
