@@ -1,7 +1,7 @@
 from .enums import ReflectionType, GroundType, TreeType
 
 import matplotlib.patches as mpatches
-from shapely.geometry import Point, box
+from shapely.geometry import Point, Polygon, box
 from shapely.ops import unary_union
 from shapely.affinity import scale
 import numpy as np
@@ -173,17 +173,22 @@ class Tree:
         tier_height = remaining_height / (n_tiers - (n_tiers - 1) * tier_overlap)
 
         y = base_y
+        tier_polygons = []
         for i in range(n_tiers):
             tier_width = self.canopy_width * (1 - i / n_tiers*0.6)
             apex_y = y + tier_height
-            triangle = mpatches.Polygon([
+            vertices = [
                 (self.position[0] - tier_width / 2, y),
                 (self.position[0] + tier_width / 2, y),
                 (self.position[0], apex_y)
-            ],
-            closed=True, facecolor='lightgray', edgecolor='black', zorder=3*i, alpha=alpha)
+            ]
+            triangle = mpatches.Polygon(vertices, closed=True, facecolor='lightgray', edgecolor='black', zorder=3*i, alpha=alpha)
             ax.add_patch(triangle)
             y += tier_height * (1 - tier_overlap)
+            tier_polygons.append(Polygon(vertices))
+
+        trunk_rect = box(self.position[0] - self.trunk_width/2, self.position[1], self.position[0] + self.trunk_width/2, self.position[1] + trunk_height)
+        self.geometry = unary_union([trunk_rect] + tier_polygons)
 
 
     def _plot_poplar(self, ax, alpha, trunk_canopy_overlap):
