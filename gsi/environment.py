@@ -161,7 +161,7 @@ class Tree:
         x, y = union_shape.exterior.xy
         ax.fill(x, y, facecolor='lightgray', edgecolor='black', linewidth=1, zorder=3, alpha=alpha)
 
-        trunk_rect = box(self.position[0] - self.trunk_width/2, self.position[1], self.position[0] + self.trunk_width/2, self.position[1] + trunk_height)
+        trunk_rect = box(self.position[0] - self.trunk_width/2, self.position[1], self.position[0] + self.trunk_width/2, self.position[1] + visual_trunk_height)
         self.geometry = unary_union([trunk_rect, union_shape])
 
     def _plot_conifer(self, ax, alpha, n_tiers, tier_overlap):
@@ -182,7 +182,7 @@ class Tree:
                 (self.position[0] + tier_width / 2, y),
                 (self.position[0], apex_y)
             ]
-            triangle = mpatches.Polygon(vertices, closed=True, facecolor='lightgray', edgecolor='black', zorder=3*i, alpha=alpha)
+            triangle = mpatches.Polygon(vertices, closed=True, facecolor='lightgray', edgecolor='black', zorder=3+i, alpha=alpha)
             ax.add_patch(triangle)
             y += tier_height * (1 - tier_overlap)
             tier_polygons.append(Polygon(vertices))
@@ -208,7 +208,7 @@ class Tree:
                                   facecolor='lightgray', edgecolor='black', zorder=3, alpha=alpha)
         ax.add_patch(canopy)
 
-        trunk_rect = box(self.position[0] - self.trunk_width/2, self.position[1], self.position[0] + self.trunk_width/2, self.position[1] + trunk_height)
+        trunk_rect = box(self.position[0] - self.trunk_width/2, self.position[1], self.position[0] + self.trunk_width/2, self.position[1] + visual_trunk_height)
         canopy_shape = scale(Point(canopy_center).buffer(1), xfact=self.canopy_width * 0.25, yfact=canopy_height * 0.5, origin=canopy_center)
         self.geometry = unary_union([trunk_rect, canopy_shape])
 
