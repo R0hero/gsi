@@ -626,12 +626,9 @@ class Satellite:
         # loop through all targets
         for target in targets:
             # check if targets are Blobs
-            if isinstance(target, Blob):
-                target_polygon = Polygon(zip(target.outer_x, target.outer_y))
-            elif isinstance(target, Tree):
-                target_polygon = target.get_geometry()
-            else:
+            if not isinstance(target, Blob) and not isinstance(target, Tree):
                 continue
+            target_polygon = target.get_geometry()
 
             target_polygon = target_polygon.convex_hull
 
