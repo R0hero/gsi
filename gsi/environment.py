@@ -93,7 +93,9 @@ class Building:
                 ax.add_patch(window)
 
 class Ground:
-    def __init__(self, height : float = 0, groundtype : str = 'Common'):
+    def __init__(self, height : float = 0, groundtype : str = 'Common', 
+                 river_x: tuple = None, coast_x: float = None, sea_side: str = 'right',
+                 depth: float = 6, bank_slope: float = 0.25, water_offset: float = 1.5):
         self.height = height
 
         # validate reflection type
@@ -103,12 +105,53 @@ class Ground:
         
         self.groundtype = GroundType._value2member_map_[groundtype]
 
+        self.depth = depth
+        self.water_offset = water_offset
+        self.water_level = height - water_offset
+
+        # profile parameters only relevant if not Common type
+        self.river_x = None
+        self.coast_x = None
+        self.sea_side = sea_side.lower()
+        self._bank_dx = 0
+        self._water_span = None
+
+        if self.groundtype == GroundType.RIVER:
+            if river_x is None or len(river_x) != 2 or river_x[0] >= river_x[1]:
+                raise ValueError("River ground requires river_x=(x_left, x_right) with x_left < x_right.")
+            if not 0 >= bank_slope <= 0.5:
+                raise ValueError("For a river, bank_slope is a fraction of the river width per bank and must be in [0, 0.5].")
+
+            self.river_x = tuple(river_x)
+            self._bank_dx = bank_slope * (river_x[1] - river_x[0])
+
+            # calculate where water surface meets banks
+            shore = self._bank_dx * water_offset / depth
+            self._water_span = (river_x[0] + shore, river_x[1] - shore)
+
+        elif self.groundtype == GroundType.COAST:
+            if coast_x is None:
+                raise ValueError("Coast ground requires a value for coast_x.")
+            if sea_side not in ('right', 'left'):
+                raise ValueError("sea_side must be 'left' or 'right'.")
+            if bank_slope < 0:
+                raise ValueError("For a coast, bank_slope is a width in x-units, and must be positive.")
+
+            self.coast_x = coast_x
+            self._bank_dx = bank_slope
+            shore = bank_slope * water_offset / depth
+            if sea_side == 'right':
+                self._water_span = (coast_x + shore, np.inf)
+            else:
+                self._water_span = (-np.inf, coast_x - shore)
+
     def plot(self, ax, 
              color : str = 'black', linewidth : float = 1, linestyle : str = '-'):
         """Draws the ground"""
         if self.groundtype == GroundType.COMMON:
             # plot the ground as a simple line
             ax.axhline(y=self.height,color=color, linewidth=linewidth, linestyle=linestyle)
+        
 
 class Tree:
     def __init__(self, position: tuple, height: float, 
