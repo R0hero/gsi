@@ -121,7 +121,7 @@ class Ground:
                 raise ValueError("River ground requires river_x=(x_left, x_right) with x_left < x_right.")
             if not 0 >= bank_slope <= 0.5:
                 raise ValueError("For a river, bank_slope is a fraction of the river width per bank and must be in [0, 0.5].")
-
+            self._validate_depths()
             self.river_x = tuple(river_x)
             self._bank_dx = bank_slope * (river_x[1] - river_x[0])
 
@@ -136,7 +136,7 @@ class Ground:
                 raise ValueError("sea_side must be 'left' or 'right'.")
             if bank_slope < 0:
                 raise ValueError("For a coast, bank_slope is a width in x-units, and must be positive.")
-
+            self._validate_depths()
             self.coast_x = coast_x
             self._bank_dx = bank_slope
             shore = bank_slope * water_offset / depth
@@ -144,6 +144,12 @@ class Ground:
                 self._water_span = (coast_x + shore, np.inf)
             else:
                 self._water_span = (-np.inf, coast_x - shore)
+
+    def _validate_depths(self):
+        if self.depth <= 0:
+            raise ValueError("depth must be positive.")
+        if not 0 <= self.water_offset < self.depth:
+            raise ValueError("water_offset must be >= 0 and smaller than depth.")
 
     def plot(self, ax, 
              color : str = 'black', linewidth : float = 1, linestyle : str = '-'):
