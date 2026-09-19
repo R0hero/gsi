@@ -7,6 +7,7 @@ import matplotlib.patches as mpatches
 import matplotlib.transforms as mtransforms
 import numpy as np
 from shapely.geometry import Polygon, Point, LineString
+from shapely.ops import unary_union
 
 class Satellite:
     def __init__(self, position : tuple, rotation : float = 0):
@@ -668,8 +669,14 @@ class Satellite:
                 target_vertices_x = [right_point[0], left_point[0], left_extended[0], right_extended[0]]
                 target_vertices_y = [right_point[1], left_point[1], left_extended[1], right_extended[1]]
 
+            quad_polygon = Polygon(zip(target_vertices_x, target_vertices_y))
+            shadow_shape = unary_union([target_polygon, quad_polygon])
+            if shadow_shape.geom_type != 'Polygon':
+                shadow_shape = shadow_shape.convex_hull
+            shadow_x, shadow_y = shadow_shape.exterior.xy
+            
             # fill out with color
-            ax.fill(target_vertices_x, target_vertices_y, color=shadow_color, alpha=shadow_alpha, zorder=0)
+            ax.fill(shadow_x, shadow_y, color=shadow_color, alpha=shadow_alpha, zorder=0)
 
             # fill out a footprint color for the ground if draw_ground is triggered as True
             if draw_ground:
