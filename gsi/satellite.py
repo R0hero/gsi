@@ -628,9 +628,9 @@ class Satellite:
             # check if targets are Blobs
             if not isinstance(target, Blob) and not isinstance(target, Tree):
                 continue
-            target_polygon = target.get_geometry()
+            target_geometry = target.get_geometry()
 
-            target_polygon = target_polygon.convex_hull
+            target_polygon = target_geometry.convex_hull
 
             # define the polygon and check if they intersect with the footprint
             intersection = footprint_polygon.intersection(target_polygon)
@@ -667,7 +667,7 @@ class Satellite:
                 target_vertices_y = [right_point[1], left_point[1], left_extended[1], right_extended[1]]
 
             quad_polygon = Polygon(zip(target_vertices_x, target_vertices_y))
-            shadow_shape = unary_union([target_polygon, quad_polygon])
+            shadow_shape = unary_union([target_geometry, quad_polygon])
             if shadow_shape.geom_type != 'Polygon':
                 shadow_shape = shadow_shape.convex_hull
             shadow_x, shadow_y = shadow_shape.exterior.xy
