@@ -151,6 +151,25 @@ class Ground:
         if not 0 <= self.water_offset < self.depth:
             raise ValueError("water_offset must be >= 0 and smaller than depth.")
 
+    def _terrain_profile(self, x_min, x_max):
+        """function to derive vertices of the land surface from x_min to x_max"""
+        if self.groundtype == GroundType.RIVER:
+            x0, x1 = self.river_x
+            return [(x_min, self.height), (x0, self.height), (x0 + self._bank_dx, self.height - self.depth), (x1 - self._bank_dx, self.height - self.depth), (x1, self.height), (x_max, self.height)]
+        if self.sea_side == 'right':
+            return [(x_min, self.height), (self.coast_x, self.height), (self.coast_x + self._bank_dx, self.height - self.depth), (x_max, self.height - self.depth)]
+        return [(x_min, self.height - self.depth), (self.coast_x - self._bank_dx, self.height - self.depth), (self.coast_x, self.height), (x_max, self.height)]
+
+    def _water_polygon(self, x_min, x_max):
+        """function to derive vertices of water surface from x_min to x_max"""
+        s0, s1 = self._water_span
+        if self.groundtype == GroundType.RIVER:
+            x0, x1 = self.river_x
+            return [(s0, self.water_level), (x0 + self._bank_dx, self.height - self.depth), (x1 - self._bank_dx, self.height - self.depth), (s1, self.water_level)]
+        if self.sea_side == 'right':
+            return [(s0, self.water_level), (self.coast_x + self._bank_dx, self.height - self.depth), (x_max, self.height - self.depth), (x_max, self.water_level)]
+        return [(x_min, self.water_level), (x_min, self.height - self.depth), (self.coast_x - self._bank_dx, self.height - self.depth), (s1, self.water_level)]
+        
     def plot(self, ax, 
              color : str = 'black', linewidth : float = 1, linestyle : str = '-'):
         """Draws the ground"""
