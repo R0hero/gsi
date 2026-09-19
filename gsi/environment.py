@@ -208,6 +208,10 @@ class Tree:
                                   facecolor='lightgray', edgecolor='black', zorder=3, alpha=alpha)
         ax.add_patch(canopy)
 
+        trunk_rect = box(self.position[0] - self.trunk_width/2, self.position[1], self.position[0] + self.trunk_width/2, self.position[1] + trunk_height)
+        canopy_shape = scale(Point(canopy_center).buffer(1), xfact=self.canopy_width * 0.25, yfact=canopy_height * 0.5, origin=canopy_center)
+        self.geometry = unary_union([trunk_rect, canopy_shape])
+
     def plot(self, ax, 
              alpha: float = 1,
              n_lobes: int = 6, lobe_radius_ratio: float = 0.5, trunk_canopy_overlap: float = 0.5, seed: int = 0, 
