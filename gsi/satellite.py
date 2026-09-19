@@ -236,7 +236,7 @@ class Satellite:
         hit_point = np.array(line.interpolate(closest_distance).coords[0])
 
         ax.plot([start[0], hit_point[0]], [start[1], hit_point[1]], color=color, linewidth=linewidth, linestyle=linestyle, zorder=zorder)
-        ax.plot([start[0], hit_point[0]], [start[1], hit_point[1]], color=color, linewidth=linewidth, linestyle=linestyle, zorder=zorder)
+        ax.plot([hit_point[0], end[0]], [hit_point[1], end[1]], color=attenuated_color, linewidth=linewidth, linestyle=attenuated_linestyle, zorder=zorder)
 
     def plot(self, ax, 
              body_radius : float = 1, buffer_distance : float = 0.5, arm_width : float = 3, arm_height : float = 1.25, scale : float = 1):
@@ -284,14 +284,18 @@ class Satellite:
     def draw_signal(self, ax, *targets, 
                     color: str = 'black', linewidth: float = 1, linestyle: str = '-', 
                     num_rays: int = 12, buffer_distance: float = 1, line_length: float = 3,
-                    corner_radius: float = 5):
+                    corner_radius: float = 5,
+                    attenuated_color: str = 'darkolivegreen', attenuated_linestyle: str = '-', zorder_signal_to_tree: int = 1):
         """Draws a signal between the satellite and specified targets (Building or Receiver)"""
+        trees = [target for target in targets if isinstance(target, Tree)]
+        targets = [target for target in targets if not isinstance(target, Tree)]
+
         # if only Receiver is given as input, plot a line between the satellite and the receiver
         if len(targets) == 1:
             target = targets[0]
             if isinstance(target, Receiver|Drone):
                 receiver_position = target._get_signal_endpoint()
-                ax.plot([self.position[0], receiver_position[0]], [self.position[1], receiver_position[1]], color=color, linewidth=linewidth, linestyle=linestyle, zorder=1)
+                self._plot_signal_line(ax, self.position, receiver_position, trees=trees, color=color, linewidth=linewidth, linestyle=linestyle, attenuated_color=attenuated_color, attenuated_linestyle=attenuated_linestyle, zorder=zorder_signal_to_tree)
         # if two inputs are given, check which one is first
         elif len(targets) == 2:
             # if Building is first and Receiver is second, check if there is a reflection
