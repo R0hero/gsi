@@ -632,23 +632,22 @@ class Satellite:
             else:
                 continue
 
+            target_polygon = target_polygon.convex_hull
+
             # define the polygon and check if they intersect with the footprint
-            blob_polygon = Polygon(zip(target.outer_x, target.outer_y))
-            intersection = footprint_polygon.intersection(blob_polygon)
+            intersection = footprint_polygon.intersection(target_polygon)
 
             # check if there is an intersection
             if intersection.is_empty:
                 continue
+
+            hull_coords = list(target_polygon.exterior.coords)[:-1]
+            angles = [np.arctan2(y - self.position[1], x - self.position[0]) for x,y in hull_coords]
+            idx_left_most = np.argmin(angles)
+            idx_right_most = np.argmax(angles)
+            left_point = hull_coords[idx_left_most]
+            right_point = hull_coords[idx_right_most]
             
-            # define intersection coordinates of blob
-            x, y = intersection.exterior.xy
-
-            # find the left-most and right-most points for blobs blocking the footprint
-            idx_left_most = np.argmin(x)
-            idx_right_most = np.argmax(x)
-            left_point = (x[idx_left_most], y[idx_left_most])
-            right_point = (x[idx_right_most], y[idx_right_most])
-
             # extend the points to the ground or to the x_limits
             left_extended = self._extend_to_ground(self.position, left_point, y_ground, x_limits)
             right_extended = self._extend_to_ground(self.position, right_point, y_ground, x_limits)
