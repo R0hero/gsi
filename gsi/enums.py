@@ -16,3 +16,9 @@ class AntennaType(Enum):
     GEODETIC = 'Geodetic'
     HELIX = 'Helix'
     PATCH = 'Patch' # WIP
+
+class TreeType(Enum):
+    """Tree types for use to determine canopy shape"""
+    DECIDUOUS = "Deciduous"
+    CONIFER = "Conifer"
+    POPLAR = "Poplar"

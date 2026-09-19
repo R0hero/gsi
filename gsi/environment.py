@@ -1,6 +1,10 @@
-from .enums import ReflectionType, GroundType
+from .enums import ReflectionType, GroundType, TreeType
 
 import matplotlib.patches as mpatches
+from shapely.geometry import Point, Polygon, box
+from shapely.ops import unary_union
+from shapely.affinity import scale
+import numpy as np
        
 class Building:
     def __init__(self, position : tuple, height : float, width : float,
@@ -105,3 +109,123 @@ class Ground:
         if self.groundtype == GroundType.COMMON:
             # plot the ground as a simple line
             ax.axhline(y=self.height,color=color, linewidth=linewidth, linestyle=linestyle)
+
+class Tree:
+    def __init__(self, position: tuple, height: float, 
+                 trunk_width: float = None, canopy_width: float = None, 
+                 treetype: str = 'Deciduous'):
+        self.position = position
+        self.height = height
+
+        self.trunk_width = trunk_width if trunk_width != None else 0.08*height
+        self.canopy_width = canopy_width if canopy_width != None else 0.75*height
+
+        if treetype not in TreeType._value2member_map_:
+            valid_types = ', '.join([f"'{r.value}'" for r in TreeType])
+            raise ValueError(f"Unknown tree type '{treetype}'. Use {valid_types}.")
+
+        self.treetype = TreeType._value2member_map_[treetype]
+        self.geometry = None
+
+    def _plot_trunk(self, ax, trunk_height, alpha, facecolor='gray'):
+        """plots the trunk"""
+        trunk_position = (self.position[0] - self.trunk_width/2, self.position[1])
+        trunk = mpatches.Rectangle(trunk_position, self.trunk_width, trunk_height, 
+                                   facecolor=facecolor, edgecolor='black', zorder=2, alpha=alpha)
+        ax.add_patch(trunk)
+        return self.position[1] + trunk_height
+
+    def _plot_deciduous(self, ax, alpha, n_lobes, lobe_radius_ratio, trunk_canopy_overlap, seed):
+        """plots a round, organic canopy"""
+        trunk_height = self.height * 0.35
+        canopy_base_y = self.position[1] + trunk_height
+
+        canopy_radius = (self.height - trunk_height) / 2
+        canopy_center = (self.position[0], canopy_base_y + canopy_radius)
+
+        visual_trunk_height = trunk_height + canopy_radius * trunk_canopy_overlap
+        self._plot_trunk(ax, visual_trunk_height, alpha)
+
+        rng = np.random.default_rng(seed)
+        angles = np.linspace(0, 2*np.pi, n_lobes, endpoint=False) + rng.uniform(-0.2, 0.2, n_lobes)
+        radial_jitter = rng.uniform(0.85, 1.15, n_lobes)
+
+        circles = [Point(canopy_center).buffer(canopy_radius * 0.72)]
+        for angle, jitter in zip(angles, radial_jitter):
+            offset = (canopy_radius * 0.5 * jitter * np.cos(angle),
+                      canopy_radius * 0.5 * jitter * np.sin(angle))
+            lobe_center = tuple(c + o for c, o in zip(canopy_center, offset))
+            circles.append(Point(lobe_center).buffer(canopy_radius * lobe_radius_ratio * jitter))
+
+        union_shape = unary_union(circles)
+        x, y = union_shape.exterior.xy
+        ax.fill(x, y, facecolor='lightgray', edgecolor='black', linewidth=1, zorder=3, alpha=alpha)
+
+        trunk_rect = box(self.position[0] - self.trunk_width/2, self.position[1], self.position[0] + self.trunk_width/2, self.position[1] + visual_trunk_height)
+        self.geometry = unary_union([trunk_rect, union_shape])
+
+    def _plot_conifer(self, ax, alpha, n_tiers, tier_overlap):
+        """plots a stacked-triangle canopy"""
+        trunk_height = self.height * 0.35
+        base_y = self._plot_trunk(ax, trunk_height, alpha)
+
+        remaining_height = self.height - trunk_height
+        tier_height = remaining_height / (n_tiers - (n_tiers - 1) * tier_overlap)
+
+        y = base_y
+        tier_polygons = []
+        for i in range(n_tiers):
+            tier_width = self.canopy_width * (1 - i / n_tiers*0.6)
+            apex_y = y + tier_height
+            vertices = [
+                (self.position[0] - tier_width / 2, y),
+                (self.position[0] + tier_width / 2, y),
+                (self.position[0], apex_y)
+            ]
+            triangle = mpatches.Polygon(vertices, closed=True, facecolor='lightgray', edgecolor='black', zorder=3+i, alpha=alpha)
+            ax.add_patch(triangle)
+            y += tier_height * (1 - tier_overlap)
+            tier_polygons.append(Polygon(vertices))
+
+        trunk_rect = box(self.position[0] - self.trunk_width/2, self.position[1], self.position[0] + self.trunk_width/2, self.position[1] + trunk_height)
+        self.geometry = unary_union([trunk_rect] + tier_polygons)
+
+
+    def _plot_poplar(self, ax, alpha, trunk_canopy_overlap):
+        """plots a tall, narrow canopy"""
+        trunk_height = self.height * 0.35        
+        canopy_base_y = self.position[1] + trunk_height
+
+        canopy_radius = (self.height - trunk_height) / 2
+        canopy_center = (self.position[0], canopy_base_y + canopy_radius)
+
+        visual_trunk_height = trunk_height + canopy_radius * trunk_canopy_overlap
+        self._plot_trunk(ax, visual_trunk_height, alpha)
+
+        canopy_height = self.height - trunk_height
+        canopy_center = (self.position[0], canopy_base_y + canopy_height / 2)
+        canopy = mpatches.Ellipse(canopy_center, width=self.canopy_width * 0.5, height=canopy_height, 
+                                  facecolor='lightgray', edgecolor='black', zorder=3, alpha=alpha)
+        ax.add_patch(canopy)
+
+        trunk_rect = box(self.position[0] - self.trunk_width/2, self.position[1], self.position[0] + self.trunk_width/2, self.position[1] + visual_trunk_height)
+        canopy_shape = scale(Point(canopy_center).buffer(1), xfact=self.canopy_width * 0.25, yfact=canopy_height * 0.5, origin=canopy_center)
+        self.geometry = unary_union([trunk_rect, canopy_shape])
+
+    def plot(self, ax, 
+             alpha: float = 1,
+             n_lobes: int = 6, lobe_radius_ratio: float = 0.5, trunk_canopy_overlap: float = 0.5, seed: int = 0, 
+             n_tiers: int = 3, tier_overlap: float = 0.35):
+        """plots the tree at given position based on the selected tree type"""
+        if self.treetype == TreeType.DECIDUOUS:
+            self._plot_deciduous(ax, alpha, n_lobes, lobe_radius_ratio, trunk_canopy_overlap, seed)
+        elif self.treetype == TreeType.CONIFER:
+            self._plot_conifer(ax, alpha, n_tiers, tier_overlap)
+        elif self.treetype == TreeType.POPLAR:
+            self._plot_poplar(ax, alpha, trunk_canopy_overlap)
+
+    def get_geometry(self, ):
+        """function to return silhouette of tree. Note, plot() must be called on tree before this is available."""
+        if self.geometry == None:
+            raise RuntimeError("Tree geometry is not available untill tree has been plotted (using .plot()).")
+        return self.geometry

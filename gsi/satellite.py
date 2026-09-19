@@ -1,12 +1,13 @@
 from .enums import ReflectionType
 from .receiver import Receiver, Drone
-from .environment import Building, Ground
+from .environment import Building, Ground, Tree
 from .ionosphere import Blob
 
 import matplotlib.patches as mpatches
 import matplotlib.transforms as mtransforms
 import numpy as np
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, Point, LineString
+from shapely.ops import unary_union
 
 class Satellite:
     def __init__(self, position : tuple, rotation : float = 0):
@@ -189,6 +190,55 @@ class Satellite:
         closest = seg_start + projection_parameter * direction_start_to_end
         return np.linalg.norm(point - closest), closest
 
+    def _plot_signal_line(self, ax, start, end, 
+                          trees=None, color='black', linewidth=1, linestyle='-',
+                          attenuated_color='darkolivegreen', attenuated_linestyle=None, zorder=1):
+        """helper function to determining if a signal line should be attenuated when passing through a tree."""
+        if attenuated_linestyle is None:
+            attenuated_linestyle = linestyle
+        start = np.asarray(start, dtype=float)
+        end = np.asarray(end, dtype=float)
+
+        if not trees:
+            ax.plot([start[0], end[0]], [start[1], end[1]], color=color, linewidth=linewidth, linestyle=linestyle, zorder=zorder)
+            return 
+        
+        line = LineString([start, end])
+
+        closest_distance = None
+        for tree in trees:
+            geometry = tree.get_geometry()
+            if not line.intersects(geometry):
+                continue
+            intersection = line.intersection(geometry)
+
+            candidate_points = []
+            if intersection.geom_type == 'Point':
+                candidate_points.append(intersection)
+            elif intersection.geom_type == 'MultiPoint':
+                candidate_points.extend(intersection.geoms)
+            elif intersection.geom_type in ('LineString', 'MultiLineString'):
+                geoms = [intersection] if intersection.geom_type == 'LineString' else intersection.geoms
+                for geom in geoms:
+                    candidate_points.extend(Point(c) for c in geom.coords)
+            else:
+                for geom in intersection.geoms:
+                    candidate_points.extend(Point(c) for c in geom.coords)
+
+            for point in candidate_points:
+                distance = line.project(point)
+                if closest_distance is None or distance < closest_distance:
+                    closest_distance = distance
+
+        if closest_distance is None:
+            ax.plot([start[0], end[0]], [start[1], end[1]], color=color, linewidth=linewidth, linestyle=linestyle, zorder=zorder)
+            return
+
+        hit_point = np.array(line.interpolate(closest_distance).coords[0])
+
+        ax.plot([start[0], hit_point[0]], [start[1], hit_point[1]], color=color, linewidth=linewidth, linestyle=linestyle, zorder=zorder)
+        ax.plot([hit_point[0], end[0]], [hit_point[1], end[1]], color=attenuated_color, linewidth=linewidth, linestyle=attenuated_linestyle, zorder=zorder)
+
     def plot(self, ax, 
              body_radius : float = 1, buffer_distance : float = 0.5, arm_width : float = 3, arm_height : float = 1.25, scale : float = 1):
         """Plots the satellite on the given position"""
@@ -235,14 +285,18 @@ class Satellite:
     def draw_signal(self, ax, *targets, 
                     color: str = 'black', linewidth: float = 1, linestyle: str = '-', 
                     num_rays: int = 12, buffer_distance: float = 1, line_length: float = 3,
-                    corner_radius: float = 5):
+                    corner_radius: float = 5,
+                    attenuated_color: str = 'darkolivegreen', attenuated_linestyle: str = '-', zorder_signal_to_tree: int = 1):
         """Draws a signal between the satellite and specified targets (Building or Receiver)"""
+        trees = [target for target in targets if isinstance(target, Tree)]
+        targets = [target for target in targets if not isinstance(target, Tree)]
+
         # if only Receiver is given as input, plot a line between the satellite and the receiver
         if len(targets) == 1:
             target = targets[0]
             if isinstance(target, Receiver|Drone):
                 receiver_position = target._get_signal_endpoint()
-                ax.plot([self.position[0], receiver_position[0]], [self.position[1], receiver_position[1]], color=color, linewidth=linewidth, linestyle=linestyle, zorder=1)
+                self._plot_signal_line(ax, self.position, receiver_position, trees=trees, color=color, linewidth=linewidth, linestyle=linestyle, attenuated_color=attenuated_color, attenuated_linestyle=attenuated_linestyle, zorder=zorder_signal_to_tree)
         # if two inputs are given, check which one is first
         elif len(targets) == 2:
             # if Building is first and Receiver is second, check if there is a reflection
@@ -538,7 +592,7 @@ class Satellite:
                                 for start, end in zip(start_points, end_points):
                                     ax.plot([start[0], end[0]], [start[1], end[1]], color=color, linewidth=linewidth, linestyle=linestyle, zorder=1)
 
-    def draw_footprint(self, ax, ground : Ground, *targets : Blob,
+    def draw_footprint(self, ax, ground : Ground, *targets : Blob | Tree,
                         x_limits = None,
                         edge_color : str = 'black', edge_linestyle : str = '--', edge_linewidth : float = 1,
                         fill_color : str = 'lightblue', fill_alpha : float = 0.5,
@@ -572,26 +626,26 @@ class Satellite:
         # loop through all targets
         for target in targets:
             # check if targets are Blobs
-            if not isinstance(target, Blob):
+            if not isinstance(target, Blob) and not isinstance(target, Tree):
                 continue
+            target_geometry = target.get_geometry()
+
+            target_polygon = target_geometry.convex_hull
 
             # define the polygon and check if they intersect with the footprint
-            blob_polygon = Polygon(zip(target.outer_x, target.outer_y))
-            intersection = footprint_polygon.intersection(blob_polygon)
+            intersection = footprint_polygon.intersection(target_polygon)
 
             # check if there is an intersection
             if intersection.is_empty:
                 continue
+
+            hull_coords = list(target_polygon.exterior.coords)[:-1]
+            angles = [np.arctan2(y - self.position[1], x - self.position[0]) for x,y in hull_coords]
+            idx_left_most = np.argmin(angles)
+            idx_right_most = np.argmax(angles)
+            left_point = hull_coords[idx_left_most]
+            right_point = hull_coords[idx_right_most]
             
-            # define intersection coordinates of blob
-            x, y = intersection.exterior.xy
-
-            # find the left-most and right-most points for blobs blocking the footprint
-            idx_left_most = np.argmin(x)
-            idx_right_most = np.argmax(x)
-            left_point = (x[idx_left_most], y[idx_left_most])
-            right_point = (x[idx_right_most], y[idx_right_most])
-
             # extend the points to the ground or to the x_limits
             left_extended = self._extend_to_ground(self.position, left_point, y_ground, x_limits)
             right_extended = self._extend_to_ground(self.position, right_point, y_ground, x_limits)
@@ -612,8 +666,14 @@ class Satellite:
                 target_vertices_x = [right_point[0], left_point[0], left_extended[0], right_extended[0]]
                 target_vertices_y = [right_point[1], left_point[1], left_extended[1], right_extended[1]]
 
+            quad_polygon = Polygon(zip(target_vertices_x, target_vertices_y))
+            shadow_shape = unary_union([target_geometry, quad_polygon])
+            if shadow_shape.geom_type != 'Polygon':
+                shadow_shape = shadow_shape.convex_hull
+            shadow_x, shadow_y = shadow_shape.exterior.xy
+            
             # fill out with color
-            ax.fill(target_vertices_x, target_vertices_y, color=shadow_color, alpha=shadow_alpha, zorder=0)
+            ax.fill(shadow_x, shadow_y, color=shadow_color, alpha=shadow_alpha, zorder=0)
 
             # fill out a footprint color for the ground if draw_ground is triggered as True
             if draw_ground:
