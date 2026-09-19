@@ -1,12 +1,12 @@
 from .enums import ReflectionType
 from .receiver import Receiver, Drone
-from .environment import Building, Ground
+from .environment import Building, Ground, Tree
 from .ionosphere import Blob
 
 import matplotlib.patches as mpatches
 import matplotlib.transforms as mtransforms
 import numpy as np
-from shapely.geometry import Polygon
+from shapely.geometry import Polygon, Point, LineString
 
 class Satellite:
     def __init__(self, position : tuple, rotation : float = 0):
@@ -188,6 +188,55 @@ class Satellite:
         
         closest = seg_start + projection_parameter * direction_start_to_end
         return np.linalg.norm(point - closest), closest
+
+    def _plot_signal_line(self, ax, start, end, 
+                          trees=None, color='black', linewidth=1, linestyle='-',
+                          attenuated_color='darkolivegreen', attenuated_linestyle=None, zorder=1):
+        """helper function to determining if a signal line should be attenuated when passing through a tree."""
+        if attenuated_linestyle is None:
+            attenuated_linestyle = linestyle
+        start = np.asarray(start, dtype=float)
+        end = np.asarray(end, dtype=float)
+
+        if not trees:
+            ax.plot([start[0], end[0]], [start[1], end[1]], color=color, linewidth=linewidth, linestyle=linestyle, zorder=zorder)
+            return 
+        
+        line = LineString([start, end])
+
+        closest_distance = None
+        for tree in trees:
+            geometry = tree.get_geometry()
+            if not line.intersects(geometry):
+                continue
+            intersection = line.intersection(geometry)
+
+            candidate_points = []
+            if intersection.geom_type == 'Point':
+                candidate_points.append(intersection)
+            elif intersection.geom_type == 'MultiPoint':
+                candidate_points.extend(intersection.geoms)
+            elif intersection.geom_type in ('LineString', 'MultiLineString'):
+                geoms = [intersection] if intersection.geom_type == 'LineString' else intersection.geoms
+                for geom in geoms:
+                    candidate_points.extend(Point(c) for c in geom.coords)
+            else:
+                for geom in intersection.geoms:
+                    candidate_points.extend(Point(c) for c in geom.coords)
+
+            for point in candidate_points:
+                distance = line.project(point)
+                if closest_distance is None or distance < closest_distance:
+                    closest_distance = distance
+
+        if closest_distance is None:
+            ax.plot([start[0], end[0]], [start[1], end[1]], color=color, linewidth=linewidth, linestyle=linestyle, zorder=zorder)
+            return
+
+        hit_point = np.array(line.interpolate(closest_distance).coords[0])
+
+        ax.plot([start[0], hit_point[0]], [start[1], hit_point[1]], color=color, linewidth=linewidth, linestyle=linestyle, zorder=zorder)
+        ax.plot([start[0], hit_point[0]], [start[1], hit_point[1]], color=color, linewidth=linewidth, linestyle=linestyle, zorder=zorder)
 
     def plot(self, ax, 
              body_radius : float = 1, buffer_distance : float = 0.5, arm_width : float = 3, arm_height : float = 1.25, scale : float = 1):
