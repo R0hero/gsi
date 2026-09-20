@@ -713,8 +713,9 @@ class Satellite:
 
         # fill out a background color for the ground if draw_ground is triggered as True
         if draw_ground:
-            below_ground_vertice_x = [x_limits[0], x_limits[0], x_limits[1], x_limits[1]]
-            below_ground_vertice_y = [y_ground, y_ground-ground_offset, y_ground-ground_offset, y_ground]
+            terrain = ground._terrain_profile(x_limits[0], x_limits[1])
+            below_ground_vertice_x = [p[0] for p in terrain] + [p[0] for p in terrain[::-1]]
+            below_ground_vertice_y = [p[1] for p in terrain] + [p[1] - ground_offset for p in terrain[::-1]]
 
             # fill out with color
             ax.fill(below_ground_vertice_x, below_ground_vertice_y, color=fill_color, alpha=fill_alpha, zorder=0)
