@@ -607,7 +607,10 @@ class Satellite:
         # right edgeline for footprint
         ax.plot([self.position[0], x_limits[1]], [self.position[1], y_ground_edgelines], color=edge_color, linestyle=edge_linestyle, linewidth=edge_linewidth, zorder=1)
         # fill out footprint with a color
-        ax.fill(vertices_x, vertices_y, color=fill_color, alpha=fill_alpha, zorder=0)
+        surface = ground._surface_profile(x_limits[0], x_limits[1])
+        fill_x = [x_limits[0], self.position[0], x_limits[1]] + [p[0] for p in surface[::-1]]
+        fill_y = [y_ground_edgelines, self.position[1], y_ground_edgelines] + [p[1] for p in surface[::-1]]
+        ax.fill(fill_x, fill_y, color=fill_color, alpha=fill_alpha, zorder=0)
 
         # create a footprint polygon
         footprint_polygon = Polygon(zip(vertices_x, vertices_y))
