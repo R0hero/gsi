@@ -187,6 +187,7 @@ class Ground:
         if self.groundtype == GroundType.COMMON:
             # plot the ground as a simple line
             ax.axhline(y=self.height,color=color, linewidth=linewidth, linestyle=linestyle)
+            return
 
         if x_limits is None:
             x_limits = ax.get_xlim()
