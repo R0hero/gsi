@@ -119,7 +119,7 @@ class Ground:
         if self.groundtype == GroundType.RIVER:
             if river_x is None or len(river_x) != 2 or river_x[0] >= river_x[1]:
                 raise ValueError("River ground requires river_x=(x_left, x_right) with x_left < x_right.")
-            if not 0 >= bank_slope <= 0.5:
+            if not 0 <= bank_slope <= 0.5:
                 raise ValueError("For a river, bank_slope is a fraction of the river width per bank and must be in [0, 0.5].")
             self._validate_depths()
             self.river_x = tuple(river_x)
