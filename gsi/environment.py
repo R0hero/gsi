@@ -181,7 +181,8 @@ class Ground:
              color : str = 'black', linewidth : float = 1, linestyle : str = '-',
              water_color: str = 'lightblue', water_alpha: float = 0.6, 
              surface_color: str = 'lightblue', surface_linewidth: float = 1, surface_linestyle: str = '-',
-             cutout_color: str = 'white'):
+             cutout_color: str = 'white', 
+             n_waves: int = 0, wave_length: float = 3, wave_height: float = 0.4):
         """Draws the ground"""
         if self.groundtype == GroundType.COMMON:
             # plot the ground as a simple line
@@ -214,6 +215,13 @@ class Ground:
         ax.plot([s0, s1], [self.water_level, self.water_level], color=surface_color, 
                 linewidth=surface_linewidth, linestyle=surface_linestyle, zorder=2)
 
+        # draw waves, if prompted
+        if n_waves > 0:
+            xs = np.linspace(s0, s1, n_waves + 2)[1:-1]
+            for xw in xs:
+                t = np.linspace(-wave_length / 2, wave_length / 2, 20)
+                ax.plot(xw + t, self.water_level - wave_height - wave_height * np.cos(2 * np.pi * t / wave_length),
+                        color=surface_color, linewidth=surface_linewidth*0.8, zorder=2)
         
 
 class Tree:
