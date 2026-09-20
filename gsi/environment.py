@@ -177,11 +177,43 @@ class Ground:
         return [(x_min, self.water_level), (x_min, self.height - self.depth), (self.coast_x - self._bank_dx, self.height - self.depth), (s1, self.water_level)]
         
     def plot(self, ax, 
-             color : str = 'black', linewidth : float = 1, linestyle : str = '-'):
+             x_limits: tuple = None,
+             color : str = 'black', linewidth : float = 1, linestyle : str = '-',
+             water_color: str = 'lightblue', water_alpha: float = 0.6, 
+             surface_color: str = 'lightblue', surface_linewidth: float = 1, surface_linestyle: str = '-',
+             cutout_color: str = 'white'):
         """Draws the ground"""
         if self.groundtype == GroundType.COMMON:
             # plot the ground as a simple line
             ax.axhline(y=self.height,color=color, linewidth=linewidth, linestyle=linestyle)
+
+        if x_limits is None:
+            x_limits = ax.get_xlim()
+        x_min, x_max = min(x_limits), max(x_limits)
+
+        terrain = self._terrain_profile(x_min, x_max)
+        water = self._water_polygon(x_min, x_max)
+
+        channel = [p for p in terrain if p[1] < self.height]
+        if self.groundtype == GroundType.RIVER:
+            cutout = [(self.river_x[0], self.height)] + channel + [(self.river_x[1], self.height)]
+        elif self.sea_side == 'right':
+            cutout = [(self.coast_x, self.height)] + channel + [(x_max, self.height)]
+        else:
+            cutout = [(x_min, self.height)] + channel + [(self.coast_x, self.height)]
+
+        # water surface
+        ax.fill(*zip(*cutout), color=cutout_color, zorder=0.5, linewidth=0)
+        ax.fill(*zip(*water), color=water_color, zorder=0.6, alpha=water_alpha, linewidth=0)
+
+        # terrain surface
+        ax.fill(*zip(*terrain), color=color, linewidth=linewidth, linestyle=linestyle, zorder=2)
+
+        # water surface line
+        s0, s1 = max(self._water_span[0], x_min), min(self._water_span[1], x_max)
+        ax.plot([s0, s1], [self.water_level, self.water_level], color=surface_color, 
+                linewidth=surface_linewidth, linestyle=surface_linestyle, zorder=2)
+
         
 
 class Tree:
