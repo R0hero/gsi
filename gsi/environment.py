@@ -159,6 +159,8 @@ class Ground:
 
     def _terrain_profile(self, x_min, x_max):
         """function to derive vertices of the land surface from x_min to x_max"""
+        if self.groundtype == GroundType.COMMON:
+            return [(x_min, self.height), (x_max, self.height)]
         if self.groundtype == GroundType.RIVER:
             x0, x1 = self.river_x
             return [(x_min, self.height), (x0, self.height), (x0 + self._bank_dx, self.height - self.depth), (x1 - self._bank_dx, self.height - self.depth), (x1, self.height), (x_max, self.height)]
