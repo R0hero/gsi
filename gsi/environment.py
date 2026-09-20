@@ -168,25 +168,31 @@ class Ground:
 
     def _terrain_profile(self, x_min, x_max):
         """function to derive vertices of the land surface from x_min to x_max"""
+        low, high = -1e9, 1e9
         if self.groundtype == GroundType.COMMON:
             return [(x_min, self.height), (x_max, self.height)]
         if self.groundtype == GroundType.RIVER:
             x0, x1 = self.river_x
-            return [(x_min, self.height), (x0, self.height), (x0 + self._bank_dx, self.height - self.depth), (x1 - self._bank_dx, self.height - self.depth), (x1, self.height), (x_max, self.height)]
+            points = [(low, self.height), (x0, self.height), (x0 + self._bank_dx, self.height - self.depth), (x1 - self._bank_dx, self.height - self.depth), (x1, self.height), (high, self.height)]
         if self.sea_side == 'right':
-            return [(x_min, self.height), (self.coast_x, self.height), (self.coast_x + self._bank_dx, self.height - self.depth), (x_max, self.height - self.depth)]
-        return [(x_min, self.height - self.depth), (self.coast_x - self._bank_dx, self.height - self.depth), (self.coast_x, self.height), (x_max, self.height)]
-
+            points =  [(low, self.height), (self.coast_x, self.height), (self.coast_x + self._bank_dx, self.height - self.depth), (high, self.height - self.depth)]
+        else: 
+            points = [(low, self.height - self.depth), (self.coast_x - self._bank_dx, self.height - self.depth), (self.coast_x, self.height), (high, self.height)]
+        return self._clip_profile(points, x_min, x_max)
+     
     def _surface_profile(self, x_min, x_max):
         """function to dervice vertices of the surface profile from x_min to x_max"""
+        low, high = -1e9, 1e9
         if self.groundtype == GroundType.COMMON:
             return [(x_min, self.height), (x_max, self.height)]
         s0, s1 = self._water_span
         if self.groundtype == GroundType.RIVER:
-            return [(x_min, self.height), (self.river_x[0], self.height), (s0, self.water_level), (s1, self.water_level), (self.river_x[1], self.height), (x_max, self.height)]
+            points = [(low, self.height), (self.river_x[0], self.height), (s0, self.water_level), (s1, self.water_level), (self.river_x[1], self.height), (high, self.height)]
         if self.sea_side == 'right':
-            return [(x_min, self.height), (self.coast_x, self.height), (s0, self.water_level), (x_max, self.water_level)]
-        return [(x_min, self.water_level), (s1, self.water_level), (self.coast_x, self.height), (x_max, self.height)]
+            points = [(low, self.height), (self.coast_x, self.height), (s0, self.water_level), (high, self.water_level)]
+        else:
+            points = [(low, self.water_level), (s1, self.water_level), (self.coast_x, self.height), (high, self.height)]
+        return self._clip_profile(points, x_min, x_max)
 
     def _water_polygon(self, x_min, x_max):
         """function to derive vertices of water surface from x_min to x_max"""
