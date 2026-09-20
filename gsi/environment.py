@@ -231,8 +231,9 @@ class Ground:
 
         # water surface line
         s0, s1 = max(self._water_span[0], x_min), min(self._water_span[1], x_max)
-        ax.plot([s0, s1], [self.water_level, self.water_level], color=surface_color, 
-                linewidth=surface_linewidth, linestyle=surface_linestyle, zorder=2)
+
+        surface_x = [s0]
+        surface_y = [self.water_level]
 
         # draw waves, if prompted
         if n_waves > 0:
@@ -249,14 +250,28 @@ class Ground:
             spacing = (s1 - s0) / n_waves
 
             for row in range(n_rows):
-                row_y = self.water_level + amplitude - row * row_spacing
-
                 shift = 0.5 * spacing if row % 2 else 0
+                row_y = self.water_level + amplitude - row * row_spacing
                 for i in range(n_waves):
                     xc = s0 + (i + 0.5) * spacing + shift
-                    if xc + wave_length / 2 > s1:
+                    x_start, x_end = xc + mark_x[0], xc + mark_x[-1]
+                    if x_start < s0 or x_end > s1:
                         continue
-                    ax.plot(xc + mark_x, row_y + mark_z, color=surface_color, linewidth=surface_linewidth * 0.8, zorder=2, solid_capstyle='round')
+                    if row == 0:
+                        # skip if it overlaps the previous one
+                        if x_start < surface_x[-1]:
+                            continue
+                        surface_x += list(xc + mark_x)
+                        surface_y += list(row_y + mark_z)
+                    else:
+                        ax.plot(xc + mark_x, row_y + mark_z, color=surface_color, linewidth=surface_linewidth * 0.8, zorder=2, solid_capstyle='round')
+
+        surface_x.append(s1)
+        surface_y.append(self.water_level)
+
+        ax.plot(surface_x, surface_y, color=surface_color, 
+                linewidth=surface_linewidth, linestyle=surface_linestyle, zorder=2)
+        ax.fill_between(surface_x, self.water_level, surface_y, color=water_color, alpha=water_alpha, linewidth=0, zorder=0.6)
 
 class Tree:
     def __init__(self, position: tuple, height: float, 
