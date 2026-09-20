@@ -386,30 +386,19 @@ class Satellite:
                 ground = targets[0]
                 receiver = targets[1]
 
-                ground_point = (receiver.position[0], ground.height)
+                # surface which can reflect (whole ground for Common, only the water for River/Coast)
+                level, surface_x_start, surface_x_end = ground.reflective_surface
 
-                # calculate where the image antenna will be placed
-                image_antenna = (receiver.position[0], 2 * ground_point[1] - receiver.position[1])
+                if self.position[1] > level and receiver.position[1] > level:
+                    reflection_x = receiver.position[0] + (self.position[0] - receiver.position[0]) * (receiver.position[1] - level) / ((receiver.position[1] - level) + (self.position[1] - level))
 
-                # define lines between satellite and image receiver
-                line_sat_to_receiver_x = np.array([self.position[0], image_antenna[0]])
-                line_sat_to_receiver_y = np.array([self.position[1], image_antenna[1]])
-
-                # find how far on the ground to check for reflections (untill below the satellite)
-                ground_line_offset = abs(self.position[0] - receiver.position[0])
-
-                # define lines for the ground
-                line_ground_x = np.array([ground.height-ground_line_offset, ground.height+ground_line_offset])
-                line_ground_y = np.array([ground.height, ground.height])
-
-                # check if there is an intersection on the ground, calculate the point
-                intersection = self._find_intersection(line_sat_to_receiver_x, line_sat_to_receiver_y, line_ground_x, line_ground_y)
-                if intersection:
-                    # line between satellite and ground
-                    ax.plot([self.position[0], intersection[0]], [self.position[1], intersection[1]], color=color, linewidth=linewidth, linestyle=linestyle, zorder=1)
-                    # line between ground and receiver
-                    receiver_position = receiver._get_signal_endpoint()
-                    ax.plot([intersection[0], receiver_position[0]], [intersection[1], receiver_position[1]], color=color, linewidth=linewidth, linestyle=linestyle, zorder=1)
+                    if surface_x_start <= reflection_x <= surface_x_end:
+                        intersection = (reflection_x, level)
+                        # line between satellite and ground
+                        ax.plot([self.position[0], intersection[0]], [self.position[1], intersection[1]], color=color, linewidth=linewidth, linestyle=linestyle, zorder=1)
+                        # line between ground and receiver
+                        receiver_position = receiver._get_signal_endpoint()
+                        ax.plot([intersection[0], receiver_position[0]], [intersection[1], receiver_position[1]], color=color, linewidth=linewidth, linestyle=linestyle, zorder=1)
 
             elif isinstance(targets[0], Receiver) and isinstance(targets[1], Building):
                 # if Receiver is first and Building is second, check if the building blocks the signal
