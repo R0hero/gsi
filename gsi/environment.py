@@ -209,7 +209,7 @@ class Ground:
              color : str = 'black', linewidth : float = 1, linestyle : str = '-',
              water_color: str = 'lightblue', water_alpha: float = 0.6, 
              surface_color: str = 'lightblue', surface_linewidth: float = 1, surface_linestyle: str = '-',
-             n_waves: int = 0, wave_length: float = 3, wave_height: float = 0.4):
+             n_waves: int = 0, wave_length: float = 3, wave_height: float = 0.4, wave_cycles: float = 0.3, n_rows: int = 1):
         """Draws the ground"""
         if self.groundtype == GroundType.COMMON:
             # plot the ground as a simple line
@@ -236,12 +236,27 @@ class Ground:
 
         # draw waves, if prompted
         if n_waves > 0:
-            xs = np.linspace(s0, s1, n_waves + 2)[1:-1]
-            for xw in xs:
-                t = np.linspace(-wave_length / 2, wave_length / 2, 20)
-                ax.plot(xw + t, self.water_level - wave_height - wave_height * np.cos(2 * np.pi * t / wave_length),
-                        color=surface_color, linewidth=surface_linewidth*0.8, zorder=2)
-        
+            k = 2 * np.pi * wave_cycles / wave_length
+            amplitude = min(wave_height, 0.9 / k)
+
+            theta = np.pi + np.linspace(0, 2 * np.pi * wave_cycles, 30 * max(int(np.ceil(wave_cycles)), 1))
+            mark_x = theta / k - amplitude * np.sin(theta)
+            mark_x -= mark_x.mean()
+            mark_z = amplitude * np.cos(theta)
+
+            depth_available = self.water_level - (self.height - self.depth)
+            row_spacing = min(2.5 * wave_height, depth_available / n_rows)
+            spacing = (s1 - s0) / n_waves
+
+            for row in range(n_rows):
+                row_y = self.water_level + amplitude - row * row_spacing
+
+                shift = 0.5 * spacing if row % 2 else 0
+                for i in range(n_waves):
+                    xc = s0 + (i + 0.5) * spacing + shift
+                    if xc + wave_length / 2 > s1:
+                        continue
+                    ax.plot(xc + mark_x, row_y + mark_z, color=surface_color, linewidth=surface_linewidth * 0.8, zorder=2, solid_capstyle='round')
 
 class Tree:
     def __init__(self, position: tuple, height: float, 
