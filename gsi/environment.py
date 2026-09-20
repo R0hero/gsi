@@ -209,7 +209,6 @@ class Ground:
              color : str = 'black', linewidth : float = 1, linestyle : str = '-',
              water_color: str = 'lightblue', water_alpha: float = 0.6, 
              surface_color: str = 'lightblue', surface_linewidth: float = 1, surface_linestyle: str = '-',
-             cutout_color: str = 'white', 
              n_waves: int = 0, wave_length: float = 3, wave_height: float = 0.4):
         """Draws the ground"""
         if self.groundtype == GroundType.COMMON:
