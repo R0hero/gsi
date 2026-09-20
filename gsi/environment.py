@@ -145,6 +145,15 @@ class Ground:
             else:
                 self._water_span = (-np.inf, coast_x - shore)
 
+    @staticmethod
+    def _clip_profile(points, x_min, x_max):
+        """clips a left-to-right polyline based on x_min to x_max, interpolating the end points"""
+        xs = np.array([p[0] for p in points], dtype=float)
+        ys = np.array([p[1] for p in points], dtype=float)
+
+        new_xs = np.concatenate(([x_min], xs[(xs > x_min) & (xs < x_max)], [x_max]))
+        return list(zip(new_xs, np.interp(new_xs, xs, ys)))
+
     @property
     def reflective_surface(self):
         if self.groundtype == GroundType.COMMON:
