@@ -209,7 +209,7 @@ class Ground:
         ax.fill(*zip(*water), color=water_color, zorder=0.6, alpha=water_alpha, linewidth=0)
 
         # terrain surface
-        ax.fill(*zip(*terrain), color=color, linewidth=linewidth, linestyle=linestyle, zorder=2)
+        ax.plot(*zip(*terrain), color=color, linewidth=linewidth, linestyle=linestyle, zorder=2)
 
         # water surface line
         s0, s1 = max(self._water_span[0], x_min), min(self._water_span[1], x_max)
