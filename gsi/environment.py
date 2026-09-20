@@ -209,16 +209,7 @@ class Ground:
         terrain = self._terrain_profile(x_min, x_max)
         water = self._water_polygon(x_min, x_max)
 
-        channel = [p for p in terrain if p[1] < self.height]
-        if self.groundtype == GroundType.RIVER:
-            cutout = [(self.river_x[0], self.height)] + channel + [(self.river_x[1], self.height)]
-        elif self.sea_side == 'right':
-            cutout = [(self.coast_x, self.height)] + channel + [(x_max, self.height)]
-        else:
-            cutout = [(x_min, self.height)] + channel + [(self.coast_x, self.height)]
-
         # water surface
-        ax.fill(*zip(*cutout), color=cutout_color, zorder=0.5, linewidth=0)
         ax.fill(*zip(*water), color=water_color, zorder=0.6, alpha=water_alpha, linewidth=0)
 
         # terrain surface
