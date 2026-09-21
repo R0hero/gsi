@@ -174,7 +174,7 @@ class Ground:
         if self.groundtype == GroundType.RIVER:
             x0, x1 = self.river_x
             points = [(low, self.height), (x0, self.height), (x0 + self._bank_dx, self.height - self.depth), (x1 - self._bank_dx, self.height - self.depth), (x1, self.height), (high, self.height)]
-        if self.sea_side == 'right':
+        elif self.sea_side == 'right':
             points =  [(low, self.height), (self.coast_x, self.height), (self.coast_x + self._bank_dx, self.height - self.depth), (high, self.height - self.depth)]
         else: 
             points = [(low, self.height - self.depth), (self.coast_x - self._bank_dx, self.height - self.depth), (self.coast_x, self.height), (high, self.height)]
@@ -188,7 +188,7 @@ class Ground:
         s0, s1 = self._water_span
         if self.groundtype == GroundType.RIVER:
             points = [(low, self.height), (self.river_x[0], self.height), (s0, self.water_level), (s1, self.water_level), (self.river_x[1], self.height), (high, self.height)]
-        if self.sea_side == 'right':
+        elif self.sea_side == 'right':
             points = [(low, self.height), (self.coast_x, self.height), (s0, self.water_level), (high, self.water_level)]
         else:
             points = [(low, self.water_level), (s1, self.water_level), (self.coast_x, self.height), (high, self.height)]
@@ -200,7 +200,7 @@ class Ground:
         if self.groundtype == GroundType.RIVER:
             x0, x1 = self.river_x
             return [(s0, self.water_level), (x0 + self._bank_dx, self.height - self.depth), (x1 - self._bank_dx, self.height - self.depth), (s1, self.water_level)]
-        if self.sea_side == 'right':
+        elif self.sea_side == 'right':
             return [(s0, self.water_level), (self.coast_x + self._bank_dx, self.height - self.depth), (x_max, self.height - self.depth), (x_max, self.water_level)]
         return [(x_min, self.water_level), (x_min, self.height - self.depth), (self.coast_x - self._bank_dx, self.height - self.depth), (s1, self.water_level)]
         
