@@ -93,7 +93,9 @@ class Building:
                 ax.add_patch(window)
 
 class Ground:
-    def __init__(self, height : float = 0, groundtype : str = 'Common'):
+    def __init__(self, height : float = 0, groundtype : str = 'Common', 
+                 river_x: tuple = None, coast_x: float = None, sea_side: str = 'right',
+                 depth: float = 6, bank_slope: float = 0.25, water_offset: float = 1.5):
         self.height = height
 
         # validate reflection type
@@ -103,12 +105,173 @@ class Ground:
         
         self.groundtype = GroundType._value2member_map_[groundtype]
 
+        self.depth = depth
+        self.water_offset = water_offset
+        self.water_level = height - water_offset
+
+        # profile parameters only relevant if not Common type
+        self.river_x = None
+        self.coast_x = None
+        self.sea_side = sea_side.lower()
+        self._bank_dx = 0
+        self._water_span = None
+
+        if self.groundtype == GroundType.RIVER:
+            if river_x is None or len(river_x) != 2 or river_x[0] >= river_x[1]:
+                raise ValueError("River ground requires river_x=(x_left, x_right) with x_left < x_right.")
+            if not 0 <= bank_slope <= 0.5:
+                raise ValueError("For a river, bank_slope is a fraction of the river width per bank and must be in [0, 0.5].")
+            self._validate_depths()
+            self.river_x = tuple(river_x)
+            self._bank_dx = bank_slope * (river_x[1] - river_x[0])
+
+            # calculate where water surface meets banks
+            shore = self._bank_dx * water_offset / depth
+            self._water_span = (river_x[0] + shore, river_x[1] - shore)
+
+        elif self.groundtype == GroundType.COAST:
+            if coast_x is None:
+                raise ValueError("Coast ground requires a value for coast_x.")
+            if sea_side not in ('right', 'left'):
+                raise ValueError("sea_side must be 'left' or 'right'.")
+            if bank_slope < 0:
+                raise ValueError("For a coast, bank_slope is a width in x-units, and must be positive.")
+            self._validate_depths()
+            self.coast_x = coast_x
+            self._bank_dx = bank_slope
+            shore = bank_slope * water_offset / depth
+            if sea_side == 'right':
+                self._water_span = (coast_x + shore, np.inf)
+            else:
+                self._water_span = (-np.inf, coast_x - shore)
+
+    @staticmethod
+    def _clip_profile(points, x_min, x_max):
+        """clips a left-to-right polyline based on x_min to x_max, interpolating the end points"""
+        xs = np.array([p[0] for p in points], dtype=float)
+        ys = np.array([p[1] for p in points], dtype=float)
+
+        new_xs = np.concatenate(([x_min], xs[(xs > x_min) & (xs < x_max)], [x_max]))
+        return list(zip(new_xs, np.interp(new_xs, xs, ys)))
+
+    @property
+    def reflective_surface(self):
+        if self.groundtype == GroundType.COMMON:
+            return (self.height, -np.inf, np.inf)
+        return (self.water_level, *self._water_span)
+
+    def _validate_depths(self):
+        if self.depth <= 0:
+            raise ValueError("depth must be positive.")
+        if not 0 <= self.water_offset < self.depth:
+            raise ValueError("water_offset must be >= 0 and smaller than depth.")
+
+    def _terrain_profile(self, x_min, x_max):
+        """function to derive vertices of the land surface from x_min to x_max"""
+        low, high = -1e9, 1e9
+        if self.groundtype == GroundType.COMMON:
+            return [(x_min, self.height), (x_max, self.height)]
+        if self.groundtype == GroundType.RIVER:
+            x0, x1 = self.river_x
+            points = [(low, self.height), (x0, self.height), (x0 + self._bank_dx, self.height - self.depth), (x1 - self._bank_dx, self.height - self.depth), (x1, self.height), (high, self.height)]
+        elif self.sea_side == 'right':
+            points =  [(low, self.height), (self.coast_x, self.height), (self.coast_x + self._bank_dx, self.height - self.depth), (high, self.height - self.depth)]
+        else: 
+            points = [(low, self.height - self.depth), (self.coast_x - self._bank_dx, self.height - self.depth), (self.coast_x, self.height), (high, self.height)]
+        return self._clip_profile(points, x_min, x_max)
+     
+    def _surface_profile(self, x_min, x_max):
+        """function to dervice vertices of the surface profile from x_min to x_max"""
+        low, high = -1e9, 1e9
+        if self.groundtype == GroundType.COMMON:
+            return [(x_min, self.height), (x_max, self.height)]
+        s0, s1 = self._water_span
+        if self.groundtype == GroundType.RIVER:
+            points = [(low, self.height), (self.river_x[0], self.height), (s0, self.water_level), (s1, self.water_level), (self.river_x[1], self.height), (high, self.height)]
+        elif self.sea_side == 'right':
+            points = [(low, self.height), (self.coast_x, self.height), (s0, self.water_level), (high, self.water_level)]
+        else:
+            points = [(low, self.water_level), (s1, self.water_level), (self.coast_x, self.height), (high, self.height)]
+        return self._clip_profile(points, x_min, x_max)
+
+    def _water_polygon(self, x_min, x_max):
+        """function to derive vertices of water surface from x_min to x_max"""
+        s0, s1 = self._water_span
+        if self.groundtype == GroundType.RIVER:
+            x0, x1 = self.river_x
+            return [(s0, self.water_level), (x0 + self._bank_dx, self.height - self.depth), (x1 - self._bank_dx, self.height - self.depth), (s1, self.water_level)]
+        elif self.sea_side == 'right':
+            return [(s0, self.water_level), (self.coast_x + self._bank_dx, self.height - self.depth), (x_max, self.height - self.depth), (x_max, self.water_level)]
+        return [(x_min, self.water_level), (x_min, self.height - self.depth), (self.coast_x - self._bank_dx, self.height - self.depth), (s1, self.water_level)]
+        
     def plot(self, ax, 
-             color : str = 'black', linewidth : float = 1, linestyle : str = '-'):
+             x_limits: tuple = None,
+             color : str = 'black', linewidth : float = 1, linestyle : str = '-',
+             water_color: str = 'lightblue', water_alpha: float = 0.6, 
+             surface_color: str = 'lightblue', surface_linewidth: float = 1, surface_linestyle: str = '-',
+             n_waves: int = 0, wave_length: float = 3, wave_height: float = 0.4, wave_cycles: float = 0.3, n_rows: int = 1):
         """Draws the ground"""
         if self.groundtype == GroundType.COMMON:
             # plot the ground as a simple line
             ax.axhline(y=self.height,color=color, linewidth=linewidth, linestyle=linestyle)
+            return
+
+        if x_limits is None:
+            x_limits = ax.get_xlim()
+        x_min, x_max = min(x_limits), max(x_limits)
+
+        terrain = self._terrain_profile(x_min, x_max)
+        water = self._water_polygon(x_min, x_max)
+
+        # water surface
+        ax.fill(*zip(*water), color=water_color, zorder=0.6, alpha=water_alpha, linewidth=0)
+
+        # terrain surface
+        ax.plot(*zip(*terrain), color=color, linewidth=linewidth, linestyle=linestyle, zorder=2)
+
+        # water surface line
+        s0, s1 = max(self._water_span[0], x_min), min(self._water_span[1], x_max)
+
+        surface_x = [s0]
+        surface_y = [self.water_level]
+
+        # draw waves, if prompted
+        if n_waves > 0:
+            k = 2 * np.pi * wave_cycles / wave_length
+            amplitude = min(wave_height, 0.9 / k)
+
+            theta = np.pi + np.linspace(0, 2 * np.pi * wave_cycles, 30 * max(int(np.ceil(wave_cycles)), 1))
+            mark_x = theta / k - amplitude * np.sin(theta)
+            mark_x -= mark_x.mean()
+            mark_z = amplitude * np.cos(theta)
+
+            depth_available = self.water_level - (self.height - self.depth)
+            row_spacing = min(2.5 * wave_height, depth_available / n_rows)
+            spacing = (s1 - s0) / n_waves
+
+            for row in range(n_rows):
+                shift = 0.5 * spacing if row % 2 else 0
+                row_y = self.water_level + amplitude - row * row_spacing
+                for i in range(n_waves):
+                    xc = s0 + (i + 0.5) * spacing + shift
+                    x_start, x_end = xc + mark_x[0], xc + mark_x[-1]
+                    if x_start < s0 or x_end > s1:
+                        continue
+                    if row == 0:
+                        # skip if it overlaps the previous one
+                        if x_start < surface_x[-1]:
+                            continue
+                        surface_x += list(xc + mark_x)
+                        surface_y += list(row_y + mark_z)
+                    else:
+                        ax.plot(xc + mark_x, row_y + mark_z, color=surface_color, linewidth=surface_linewidth * 0.8, zorder=2, solid_capstyle='round')
+
+        surface_x.append(s1)
+        surface_y.append(self.water_level)
+
+        ax.plot(surface_x, surface_y, color=surface_color, 
+                linewidth=surface_linewidth, linestyle=surface_linestyle, zorder=2)
+        ax.fill_between(surface_x, self.water_level, surface_y, color=water_color, alpha=water_alpha, linewidth=0, zorder=0.6)
 
 class Tree:
     def __init__(self, position: tuple, height: float, 
