@@ -95,7 +95,8 @@ class Building:
 class Ground:
     def __init__(self, height : float = 0, groundtype : str = 'Common', 
                  river_x: tuple = None, coast_x: float = None, sea_side: str = 'right',
-                 depth: float = 6, bank_slope: float = 0.25, water_offset: float = 1.5):
+                 depth: float = 6, bank_slope: float = 0.25, water_offset: float = 1.5,
+                 features: list = None, terrain_resolution: int = 800):
         self.height = height
 
         # validate reflection type
@@ -115,6 +116,14 @@ class Ground:
         self.sea_side = sea_side.lower()
         self._bank_dx = 0
         self._water_span = None
+
+        self.features = []
+        self.terrain_resolution = terrain_resolution
+        if self.groundtype == GroundType.TERRAIN:
+            for feature in (features or []):
+                self.add_feature(feature)
+        elif features:
+            raise ValueError("features can only be given for GroundType 'Terrain.'")
 
         if self.groundtype == GroundType.RIVER:
             if river_x is None or len(river_x) != 2 or river_x[0] >= river_x[1]:
