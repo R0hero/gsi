@@ -262,6 +262,15 @@ class Ground:
         elif self.sea_side == 'right':
             return [(s0, self.water_level), (self.coast_x + self._bank_dx, self.height - self.depth), (x_max, self.height - self.depth), (x_max, self.water_level)]
         return [(x_min, self.water_level), (x_min, self.height - self.depth), (self.coast_x - self._bank_dx, self.height - self.depth), (s1, self.water_level)]
+
+    def add_feature(self, feature: 'TerrainFeature'):
+        """places a terrain feature on a Terrain ground. Returns the Ground, in order to be able to chain calls."""
+        if self.groundtype != GroundType.TERRAIN:
+            raise ValueError("Terrain features can only be added to a Ground with type 'Terrain'.")
+        if not isinstance(self.feature, TerrainFeature):
+            raise TypeError("Only TerrainFeature objects can be added to the Terrain.")
+        self.features.append(feature)
+        return self
         
     def plot(self, ax, 
              x_limits: tuple = None,
