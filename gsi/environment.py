@@ -279,7 +279,7 @@ class Ground:
         x = np.asarray(x, dtype=float)
         if self.groundtype == GroundType.COMMON:
             y = np.full_like(x, self.height)
-        elif self.groundtype == GroundType.Terrain:
+        elif self.groundtype == GroundType.TERRAIN:
             y = self._terrain_height(x)
         else:
             profile = self._terrain_profile(np.min(x) - 1, np.max(x) + 1)
