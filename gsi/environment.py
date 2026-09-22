@@ -237,6 +237,10 @@ class Ground:
         low, high = -1e9, 1e9
         if self.groundtype == GroundType.COMMON:
             return [(x_min, self.height), (x_max, self.height)]
+        if self.groundtype == GroundType.TERRAIN:
+            centres = [f.position for f in self.features if x_min < f.position < x_max]
+            xs = np.unique(np.concatenate((np.linspace(x_min, x_max, self.terrain_resolution), centres)))
+            return list(zip(xs, self._terrain_height(xs)))
         if self.groundtype == GroundType.RIVER:
             x0, x1 = self.river_x
             points = [(low, self.height), (x0, self.height), (x0 + self._bank_dx, self.height - self.depth), (x1 - self._bank_dx, self.height - self.depth), (x1, self.height), (high, self.height)]
