@@ -1,4 +1,4 @@
-from .enums import ReflectionType, GroundType, TreeType
+from .enums import ReflectionType, GroundType, TreeType, TerrainShape
 
 import matplotlib.patches as mpatches
 from shapely.geometry import Point, Polygon, box
