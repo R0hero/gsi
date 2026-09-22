@@ -290,7 +290,7 @@ class Ground:
         """places a terrain feature on a Terrain ground. Returns the Ground, in order to be able to chain calls."""
         if self.groundtype != GroundType.TERRAIN:
             raise ValueError("Terrain features can only be added to a Ground with type 'Terrain'.")
-        if not isinstance(self.feature, TerrainFeature):
+        if not isinstance(feature, TerrainFeature):
             raise TypeError("Only TerrainFeature objects can be added to the Terrain.")
         self.features.append(feature)
         return self
