@@ -92,6 +92,29 @@ class Building:
             for window in windows:
                 ax.add_patch(window)
 
+class TerrainFeature:
+    def __init__(self, position: float, height: float, width: float, 
+                 shape: str = 'Hill', roughness: float = None, seed: int = 0):
+        if shape not in TerrainShape._value2member_map_:
+            valid_types = ', '.join([f"'{r.value}'" for r in TerrainShape])
+            raise ValueError(f"Unknown terrain shape type '{shape}'. Use {valid_types}.")
+        if height <= 0:
+            raise ValueError("height must be positive. Use 'Valley' to carve downward")
+        if width <= 0:
+            raise ValueError("width must be positive.")
+        
+        self.position = position
+        self.height = height
+        self.width = width
+        self.shape = TerrainShape._value2member_map_[shape]
+        self.seed = seed
+
+        if roughness is None:
+            roughness = 0.12 if self.shape == TerrainShape.MOUNTAIN else 0.0
+        if not 0 <= roughness < 1:
+            raise ValueError("roughness must be within [0, 1].")
+        self.roughness = roughness
+
 class Ground:
     def __init__(self, height : float = 0, groundtype : str = 'Common', 
                  river_x: tuple = None, coast_x: float = None, sea_side: str = 'right',
