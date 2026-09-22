@@ -253,8 +253,8 @@ class Ground:
     def _surface_profile(self, x_min, x_max):
         """function to dervice vertices of the surface profile from x_min to x_max"""
         low, high = -1e9, 1e9
-        if self.groundtype == GroundType.COMMON:
-            return [(x_min, self.height), (x_max, self.height)]
+        if self.groundtype in [GroundType.COMMON, GroundType.TERRAIN]:
+            return self._terrain_profile(x_min, x_max)
         s0, s1 = self._water_span
         if self.groundtype == GroundType.RIVER:
             points = [(low, self.height), (self.river_x[0], self.height), (s0, self.water_level), (s1, self.water_level), (self.river_x[1], self.height), (high, self.height)]
