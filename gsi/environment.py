@@ -225,6 +225,11 @@ class Ground:
         if not 0 <= self.water_offset < self.depth:
             raise ValueError("water_offset must be >= 0 and smaller than depth.")
 
+    def _terrain_height(self, x):
+        """base height plus contribution of placed features"""
+        x = np.asarray(x, dtype=float)
+        return self.height + sum((f.profile(x) for f in self.features), np.zeros_like(x))
+
     def _terrain_profile(self, x_min, x_max):
         """function to derive vertices of the land surface from x_min to x_max"""
         low, high = -1e9, 1e9
