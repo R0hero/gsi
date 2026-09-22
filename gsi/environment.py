@@ -115,6 +115,11 @@ class TerrainFeature:
             raise ValueError("roughness must be within [0, 1].")
         self.roughness = roughness
 
+        rng = np.random.default_rng(seed)
+        self._noise_cycles = np.array([3.0, 7.0, 13.0])
+        self._noise_amps = np.array([1.0, 0.5, 0.25])
+        self._noise_phases = rng.uniform(0, 2 * np.pi, len(self._noise_cycles))
+
 class Ground:
     def __init__(self, height : float = 0, groundtype : str = 'Common', 
                  river_x: tuple = None, coast_x: float = None, sea_side: str = 'right',
