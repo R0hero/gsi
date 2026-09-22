@@ -217,6 +217,8 @@ class Ground:
     def reflective_surface(self):
         if self.groundtype == GroundType.COMMON:
             return (self.height, -np.inf, np.inf)
+        if self.groundtype == GroundType.TERRAIN:
+            return None
         return (self.water_level, *self._water_span)
 
     def _validate_depths(self):
