@@ -120,6 +120,28 @@ class TerrainFeature:
         self._noise_amps = np.array([1.0, 0.5, 0.25])
         self._noise_phases = rng.uniform(0, 2 * np.pi, len(self._noise_cycles))
 
+    def profile(self, x):
+        """returns the height added to the ground by this feature at x"""
+        x = np.asarray(x, dtype=float)
+
+        u = np.abs(x - self.position) / (self.width / 2)
+        inside = u < 1
+        z = np.zeros_like(u)
+
+        if self.shape == TerrainShape.MOUNTAIN:
+            z[inside] = (1 - u) ** 2
+        else:
+            z[inside] = 0.5 * (1 + np.cos(np.pi * u[inside]))
+
+        if self.roughness > 0:
+            t = (x - self.position) / self.width
+            noise = sum(a * np.sin(2 * np.pi * c * t + ph) for a, c, ph in zip(self._noise_amps, self._noise_cycles, self._noise_phases))
+            noise /= self._noise_amps.sum()
+
+            z = z * np.clip(1 + self.roughness * noise, 0, None)
+        sign = -1 if self.shape == TerrainShape.VALLEY else 1
+        return sign * self.height * z
+
 class Ground:
     def __init__(self, height : float = 0, groundtype : str = 'Common', 
                  river_x: tuple = None, coast_x: float = None, sea_side: str = 'right',
