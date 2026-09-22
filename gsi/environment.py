@@ -300,7 +300,8 @@ class Ground:
              color : str = 'black', linewidth : float = 1, linestyle : str = '-',
              water_color: str = 'lightblue', water_alpha: float = 0.6, 
              surface_color: str = 'lightblue', surface_linewidth: float = 1, surface_linestyle: str = '-',
-             n_waves: int = 0, wave_length: float = 3, wave_height: float = 0.4, wave_cycles: float = 0.3, n_rows: int = 1):
+             n_waves: int = 0, wave_length: float = 3, wave_height: float = 0.4, wave_cycles: float = 0.3, n_rows: int = 1,
+             terrain_fill_color: str = 'lightgray', terrain_fill_alpha: float = 0.5, terrain_fill_depth: float = 5):
         """Draws the ground"""
         if self.groundtype == GroundType.COMMON:
             # plot the ground as a simple line
@@ -312,6 +313,16 @@ class Ground:
         x_min, x_max = min(x_limits), max(x_limits)
 
         terrain = self._terrain_profile(x_min, x_max)
+
+        if self.groundtype == GroundType.TERRAIN:
+            xs, ys = zip(*terrain)
+
+            if terrain_fill_color is not None:
+                ax.fill_between(xs, self.height - terrain_fill_depth - max(0, self.height - min(ys)), ys, 
+                                color=terrain_fill_color, alpha=terrain_fill_alpha, linewidth=0, zorder=0.6)
+                ax.plot(xs, ys, color=color, linewidth=linewidth, linestyle=linestyle, zorder=2)
+                return 
+
         water = self._water_polygon(x_min, x_max)
 
         # water surface
