@@ -129,7 +129,7 @@ class TerrainFeature:
         z = np.zeros_like(u)
 
         if self.shape == TerrainShape.MOUNTAIN:
-            z[inside] = (1 - u) ** 2
+            z[inside] = (1 - u[inside])**1.5
         else:
             z[inside] = 0.5 * (1 + np.cos(np.pi * u[inside]))
 
