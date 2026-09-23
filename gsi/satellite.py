@@ -387,7 +387,11 @@ class Satellite:
                 receiver = targets[1]
 
                 # surface which can reflect (whole ground for Common, only the water for River/Coast)
-                level, surface_x_start, surface_x_end = ground.reflective_surface
+                surface = ground.reflective_surface
+
+                if surface is None:
+                    return
+                level, surface_x_start, surface_x_end = surface
 
                 if self.position[1] > level and receiver.position[1] > level:
                     reflection_x = receiver.position[0] + (self.position[0] - receiver.position[0]) * (receiver.position[1] - level) / ((receiver.position[1] - level) + (self.position[1] - level))
