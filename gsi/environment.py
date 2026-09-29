@@ -258,7 +258,7 @@ class Ground:
         xs_base = [p[0] for p in base]
         ys_base = [p[1] for p in base]
         centres = [f.position for f in self.features if x_min < f.position < x_max]
-        xs = np.uniques(np.concatenate((np.linspace(x_min, x_max, self.terrain_resolution), xs_base, centres)))
+        xs = np.unique(np.concatenate((np.linspace(x_min, x_max, self.terrain_resolution), xs_base, centres)))
         base_y = np.interp(xs, xs_base, ys_base)
         return list(zip(xs, base_y + self._feature_offset(xs))) 
      
