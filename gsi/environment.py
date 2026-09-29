@@ -273,6 +273,23 @@ class Ground:
             return [(s0, self.water_level), (self.coast_x + self._bank_dx, self.height - self.depth), (x_max, self.height - self.depth), (x_max, self.water_level)]
         return [(x_min, self.water_level), (x_min, self.height - self.depth), (self.coast_x - self._bank_dx, self.height - self.depth), (s1, self.water_level)]
 
+    def _feature_offset(self, x):
+        """combined contribution of every placed feature at x, zeroed out over water"""
+        x = np.asarray(x, dtype=float)
+        total = sum((f.profile(x) for f in self.features), np.zeros_like(x))
+
+        if self.groundtype == GroundType.RIVER:
+            x0, x1 = self.river_x
+            total = np.where((x > x0) & (x < x1), 0.0, total)
+        elif self.groundtype == GroundType.COAST:
+            if self.sea_side == 'right':
+                total = np.where(x >= self.coast_x, 0.0, total)
+            else:
+                total = np.where(x <= self.coast_x, 0,0, total)
+
+        return total
+
+
     def height_at(self, x):
         """returns height of the land surface at x"""
         x = np.asarray(x, dtype=float)
