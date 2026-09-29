@@ -169,11 +169,10 @@ class Ground:
 
         self.features = []
         self.terrain_resolution = terrain_resolution
-        if self.groundtype == GroundType.TERRAIN:
-            for feature in (features or []):
-                self.add_feature(feature)
-        elif features:
-            raise ValueError("features can only be given for GroundType 'Terrain.'")
+        if features and self.groundtype == GroundType.COMMON:
+            raise ValueError("features can only be given for 'Terrain', 'River', or 'Coast'.")
+        for feature in (features or []):
+            self.add_feature(feature)
 
         if self.groundtype == GroundType.RIVER:
             if river_x is None or len(river_x) != 2 or river_x[0] >= river_x[1]:
@@ -237,7 +236,7 @@ class Ground:
         low, high = -1e9, 1e9
         if self.groundtype == GroundType.COMMON:
             return [(x_min, self.height), (x_max, self.height)]
-        if self.groundtype == GroundType.TERRAIN:
+        if self.groundtype in (GroundType.TERRAIN, GroundType.RIVER, GroundType.COAST):
             centres = [f.position for f in self.features if x_min < f.position < x_max]
             xs = np.unique(np.concatenate((np.linspace(x_min, x_max, self.terrain_resolution), centres)))
             return list(zip(xs, self._terrain_height(xs)))
@@ -288,8 +287,8 @@ class Ground:
 
     def add_feature(self, feature: 'TerrainFeature'):
         """places a terrain feature on a Terrain ground. Returns the Ground, in order to be able to chain calls."""
-        if self.groundtype != GroundType.TERRAIN:
-            raise ValueError("Terrain features can only be added to a Ground with type 'Terrain'.")
+        if self.groundtype == GroundType.COMMON:
+            raise ValueError("Terrain features can not be added to 'Common' ground type.")
         if not isinstance(feature, TerrainFeature):
             raise TypeError("Only TerrainFeature objects can be added to the Terrain.")
         self.features.append(feature)
