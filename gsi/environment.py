@@ -229,7 +229,7 @@ class Ground:
     def _terrain_height(self, x):
         """base height plus contribution of placed features"""
         x = np.asarray(x, dtype=float)
-        return self.height + sum((f.profile(x) for f in self.features), np.zeros_like(x))
+        return self.height + self._feature_offset(x)
 
     def _terrain_profile(self, x_min, x_max):
         """function to derive vertices of the land surface from x_min to x_max"""
