@@ -236,7 +236,10 @@ class Ground:
         low, high = -1e9, 1e9
         if self.groundtype == GroundType.COMMON:
             return [(x_min, self.height), (x_max, self.height)]
-        if self.groundtype in (GroundType.TERRAIN, GroundType.RIVER, GroundType.COAST):
+        if self.groundtype == GroundType.TERRAIN:
+            if not self.features:
+                return [(x_min, self.height), (x_max, self.height)]
+
             centres = [f.position for f in self.features if x_min < f.position < x_max]
             xs = np.unique(np.concatenate((np.linspace(x_min, x_max, self.terrain_resolution), centres)))
             return list(zip(xs, self._terrain_height(xs)))
@@ -247,7 +250,17 @@ class Ground:
             points =  [(low, self.height), (self.coast_x, self.height), (self.coast_x + self._bank_dx, self.height - self.depth), (high, self.height - self.depth)]
         else: 
             points = [(low, self.height - self.depth), (self.coast_x - self._bank_dx, self.height - self.depth), (self.coast_x, self.height), (high, self.height)]
-        return self._clip_profile(points, x_min, x_max)
+
+        base = self._clip_profile(points, x_min, x_max)
+        if not self.features:
+            return base
+
+        xs_base = [p[0] for p in base]
+        ys_base = [p[1] for p in base]
+        centres = [f.position for f in self.features if x_min < f.position < x_max]
+        xs = np.uniques(np.concatenate((np.linspace(x_min, x_max, self.terrain_resolution), xs_base, centres)))
+        base_y = np.interp(xs, xs_base, ys_base)
+        return list(zip(xs, base_y + self._feature_offset(xs))) 
      
     def _surface_profile(self, x_min, x_max):
         """function to dervice vertices of the surface profile from x_min to x_max"""
