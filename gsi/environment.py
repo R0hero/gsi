@@ -298,7 +298,7 @@ class Ground:
             if self.sea_side == 'right':
                 total = np.where(x >= self.coast_x, 0.0, total)
             else:
-                total = np.where(x <= self.coast_x, 0,0, total)
+                total = np.where(x <= self.coast_x, 0.0, total)
 
         return total
 
