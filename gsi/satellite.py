@@ -239,6 +239,38 @@ class Satellite:
         ax.plot([start[0], hit_point[0]], [start[1], hit_point[1]], color=color, linewidth=linewidth, linestyle=linestyle, zorder=zorder)
         ax.plot([hit_point[0], end[0]], [hit_point[1], end[1]], color=attenuated_color, linewidth=linewidth, linestyle=attenuated_linestyle, zorder=zorder)
 
+    def _terrain_shadow_mask(self, xs, ys):
+        xs = np.asarray(xs, dtype=float)
+        ys = np.asarray(ys, dtype=float)
+
+        dx = xs - self.position[0]
+        dy = ys - self.position[1]
+
+        with np.errstate(divide='ignore', invalid='ignore'):
+            slope = dy / dx
+
+        visible = np.ones(len(xs), dtype=bool)
+
+        right = np.where(dx > 0)[0]
+        right = right[np.argsort(xs[right])]
+        running_max = -np.inf
+        for i in right:
+            if slope[i] < running_max:
+                visible[i] = False
+            else:
+                running_max = slope[i]
+
+        left = np.where(dx < 0)[0]
+        left = left[np.argsort(xs[left])]
+        running_min = np.inf
+        for i in left:
+            if slope[i] > running_min:
+                visible[i] = False
+            else:
+                running_min = slope[i]
+
+        return ~visible
+
     def plot(self, ax, 
              body_radius : float = 1, buffer_distance : float = 0.5, arm_width : float = 3, arm_height : float = 1.25, scale : float = 1):
         """Plots the satellite on the given position"""
