@@ -240,6 +240,7 @@ class Satellite:
         ax.plot([hit_point[0], end[0]], [hit_point[1], end[1]], color=attenuated_color, linewidth=linewidth, linestyle=attenuated_linestyle, zorder=zorder)
 
     def _terrain_shadow_mask(self, xs, ys):
+        """helper function to create a shadow mask behind terrain based on the satellites position"""
         xs = np.asarray(xs, dtype=float)
         ys = np.asarray(ys, dtype=float)
 
