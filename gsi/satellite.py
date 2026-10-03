@@ -795,4 +795,15 @@ class Satellite:
                 if plot_edge_lines:
                     ax.plot([seg_x[0], seg_x[-1]], [ray_y[0], ray_y[-1]], color=shadow_color, alpha=shadow_alpha, linestyle=shadow_linestyle, linewidth=shadow_linewidth, zorder=1)
                 if draw_ground:
-                    ax.fill_between(seg_x, seg_ground_y - ground_footprint_offset, seg_ground_y, color=shadow_color, alpha=shadow_alpha, linewidth=0, zorder=0.65)
+                    run_length = seg_x[-1] - seg_x[0]
+                    ramp = min(corner_radius, run_length / 2) if run_length > 0 else 0
+                    if ramp > 0:
+                        from_left = seg_x - seg_x[0]
+                        from_right = seg_x[-1] - seg_x
+                        ease_left = 0.5 * (1 - np.cos(np.pi * np.clip(from_left/ramp, 0, 1)))
+                        ease_right = 0.5 * (1 - np.cos(np.pi * np.clip(from_right/ramp, 0, 1)))
+                        depth = ground_footprint_offset * np.minimum(ease_left, ease_right)
+                    else:
+                        depth = np.full_like(seg_x, ground_footprint_offset)
+
+                    ax.fill_between(seg_x, seg_ground_y - depth, seg_ground_y, color=shadow_color, alpha=shadow_alpha, linewidth=0, zorder=0.65)
