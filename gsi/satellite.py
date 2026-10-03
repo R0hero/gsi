@@ -640,7 +640,8 @@ class Satellite:
                         fill_color : str = 'lightblue', fill_alpha : float = 0.5,
                         plot_edge_lines : bool = True, shadow_linestyle : str = '--', shadow_linewidth : float = 0.8,
                         shadow_color : str = 'red', shadow_alpha : float = 0.3,
-                        draw_ground : bool = True, ground_offset : float = 5, ground_footprint_offset : float = 3, corner_radius : float = 3, n_points_arcs : int = 15):
+                        draw_ground : bool = True, ground_offset : float = 5, ground_footprint_offset : float = 3, corner_radius : float = 3, n_points_arcs : int = 15,
+                        terrain_shadow: bool = True):
         """Draws the footprint of the satellite"""
         
         # extract plot limits from current plot
