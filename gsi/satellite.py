@@ -773,3 +773,26 @@ class Satellite:
 
             # fill out with color
             ax.fill(below_ground_vertice_x, below_ground_vertice_y, color=fill_color, alpha=fill_alpha, zorder=0)
+
+        if terrain_shadow and ground.features:
+            terrain = ground._terrain_profile(x_limits[0], x_limits[1])
+            xs = np.array([p[0] for p in terrain])
+            ys = np.array([p[1] for p in terrain])
+
+            order = np.argsort(xs)
+            xs, ys = xs[order], ys[order]
+
+            hidden, hiding_slope = self._terrain_shadow_mask(xs, ys)
+
+            for start, end in self._contiguous_runs(hidden):
+                seg_x = xs[start:end + 1]
+                seg_ground_y = ys[start:end + 1]
+
+                ray_slope = hiding_slope[start]
+                ray_y = self.position[1] + ray_slope * (seg_x - self.position[0])
+
+                ax.fill_between(seg_x, seg_ground_y, ray_y, color=shadow_color, alpha=shadow_alpha, linewidth=0, zorder=0.7)
+                if plot_edge_lines:
+                    ax.plot([seg_x[0], seg_x[-1]], [ray_y[0], ray_y[-1]], color=shadow_color, alpha=shadow_alpha, linestyle=shadow_linestyle, linewidth=shadow_linewidth, zorder=1)
+                if draw_ground:
+                    ax.fill_between(seg_x, seg_ground_y - ground_footprint_offset, seg_ground_y, color=shadow_color, alpha=shadow_alpha, linewidth=0, zorder=0.65)
