@@ -143,11 +143,13 @@ class Satellite:
                             rounding_point2[1] + (radius) * np.sin(right_angle))
         
         # calculate slope to find points on side
-        if (rounding_point1[0] - ground_point1[0]) != 0:
+        left_vertical = (rounding_point1[0] - ground_point1[0]) == 0
+        right_vertical = (rounding_point2[0] - ground_point2[0]) == 0
+        if not left_vertical:
             slope_left = (rounding_point1[1] - ground_point1[1])/(rounding_point1[0] - ground_point1[0])
         else:
             slope_left = 0
-        if (rounding_point2[0] - ground_point2[0]) != 0:
+        if not right_vertical:
             slope_right = (rounding_point2[1] - ground_point2[1])/(rounding_point2[0] - ground_point2[0])
         else:
             slope_right = 0
@@ -157,11 +159,15 @@ class Satellite:
         starting_point_right = rounding_point2[1] - slope_right * rounding_point2[0]
         
         # define points to start the rounded effect
-        if slope_left != 0:
+        if left_vertical:
+            start_rounding_left_x = rounding_point1[0]
+        elif slope_left != 0:
             start_rounding_left_x = (new_center_left[1] - starting_point_left) / slope_left
         else:
             start_rounding_left_x = new_center_left[0]
-        if slope_right != 0:
+        if right_vertical:
+            start_rounding_right_x = rounding_point2[0]
+        elif slope_right != 0:
             start_rounding_right_x = (new_center_right[1] - starting_point_right) / slope_right
         else:
             start_rounding_right_x = new_center_right[0]
