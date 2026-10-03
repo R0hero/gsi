@@ -202,7 +202,7 @@ class Satellite:
         arc_x_left, arc_y_left, arc_x_right, arc_y_right = self._round_corners([x0, x1, x1, x0], [-depth, -depth, 0, 0], radius, n_points)
 
         left = list(zip(arc_x_left, arc_y_left) if round_left else [(x0, -depth)])
-        right = list(zip(arc_x_right, arc_y_right) if round_right else [(x1, -depth)])
+        right = list(zip(arc_x_right[::-1], arc_y_right[::-1]) if round_right else [(x1, -depth)])
 
         inner = seg_x[(seg_x > left[-1][0]) & (seg_x < right[0][0])]
         bottom = [(x, -depth) for x in inner]
