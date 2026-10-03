@@ -14,6 +14,19 @@ class Satellite:
         self.position = position
         self.rotation = rotation
 
+    @staticmethod
+    def _contiguous_runs(mask):
+        """yields start and end index inclusive for each contiguous run of True in mask"""
+        start = None
+        for i, hidden in enumerate(mask):
+            if hidden and start is None:
+                start = i
+            elif not hidden and start is not None:
+                yield (start, i - 1)
+                start = None
+        if start is not None:
+            yield (start, len(mask) - 1)
+
     def _rotate_element(self, ax, patch, angle, center):
         """Applies a rotation transformation to the given patch"""
         transform = mtransforms.Affine2D().rotate_deg_around(center[0], center[1], angle) + ax.transData
