@@ -10,6 +10,13 @@ class GroundType(Enum):
     COMMON = 'Common'
     RIVER = 'River' # WIP
     COAST = 'Coast' # WIP
+    TERRAIN = 'Terrain'
+
+class TerrainShape(Enum):
+    """Terrain shapes for use in determining which feature to compute on ground"""
+    HILL = 'Hill'
+    MOUNTAIN = 'Mountain'
+    VALLEY = 'Valley'
 
 class AntennaType(Enum):
     """Antenna types for use to determine radiation pattern"""

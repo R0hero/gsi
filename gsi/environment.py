@@ -1,4 +1,4 @@
-from .enums import ReflectionType, GroundType, TreeType
+from .enums import ReflectionType, GroundType, TreeType, TerrainShape
 
 import matplotlib.patches as mpatches
 from shapely.geometry import Point, Polygon, box
@@ -92,10 +92,61 @@ class Building:
             for window in windows:
                 ax.add_patch(window)
 
+class TerrainFeature:
+    def __init__(self, position: float, height: float, width: float, 
+                 shape: str = 'Hill', roughness: float = None, seed: int = 0):
+        if shape not in TerrainShape._value2member_map_:
+            valid_types = ', '.join([f"'{r.value}'" for r in TerrainShape])
+            raise ValueError(f"Unknown terrain shape type '{shape}'. Use {valid_types}.")
+        if height <= 0:
+            raise ValueError("height must be positive. Use 'Valley' to carve downward")
+        if width <= 0:
+            raise ValueError("width must be positive.")
+        
+        self.position = position
+        self.height = height
+        self.width = width
+        self.shape = TerrainShape._value2member_map_[shape]
+        self.seed = seed
+
+        if roughness is None:
+            roughness = 0.12 if self.shape == TerrainShape.MOUNTAIN else 0.0
+        if not 0 <= roughness < 1:
+            raise ValueError("roughness must be within [0, 1].")
+        self.roughness = roughness
+
+        rng = np.random.default_rng(seed)
+        self._noise_cycles = np.array([3.0, 7.0, 13.0])
+        self._noise_amps = np.array([1.0, 0.5, 0.25])
+        self._noise_phases = rng.uniform(0, 2 * np.pi, len(self._noise_cycles))
+
+    def profile(self, x):
+        """returns the height added to the ground by this feature at x"""
+        x = np.asarray(x, dtype=float)
+
+        u = np.abs(x - self.position) / (self.width / 2)
+        inside = u < 1
+        z = np.zeros_like(u)
+
+        if self.shape == TerrainShape.MOUNTAIN:
+            z[inside] = (1 - u[inside])**1.5
+        else:
+            z[inside] = 0.5 * (1 + np.cos(np.pi * u[inside]))
+
+        if self.roughness > 0:
+            t = (x - self.position) / self.width
+            noise = sum(a * np.sin(2 * np.pi * c * t + ph) for a, c, ph in zip(self._noise_amps, self._noise_cycles, self._noise_phases))
+            noise /= self._noise_amps.sum()
+
+            z = z * np.clip(1 + self.roughness * noise, 0, None)
+        sign = -1 if self.shape == TerrainShape.VALLEY else 1
+        return sign * self.height * z
+
 class Ground:
     def __init__(self, height : float = 0, groundtype : str = 'Common', 
                  river_x: tuple = None, coast_x: float = None, sea_side: str = 'right',
-                 depth: float = 6, bank_slope: float = 0.25, water_offset: float = 1.5):
+                 depth: float = 6, bank_slope: float = 0.25, water_offset: float = 1.5,
+                 features: list = None, terrain_resolution: int = 800):
         self.height = height
 
         # validate reflection type
@@ -115,6 +166,13 @@ class Ground:
         self.sea_side = sea_side.lower()
         self._bank_dx = 0
         self._water_span = None
+
+        self.features = []
+        self.terrain_resolution = terrain_resolution
+        if features and self.groundtype == GroundType.COMMON:
+            raise ValueError("features can only be given for 'Terrain', 'River', or 'Coast'.")
+        for feature in (features or []):
+            self.add_feature(feature)
 
         if self.groundtype == GroundType.RIVER:
             if river_x is None or len(river_x) != 2 or river_x[0] >= river_x[1]:
@@ -158,6 +216,8 @@ class Ground:
     def reflective_surface(self):
         if self.groundtype == GroundType.COMMON:
             return (self.height, -np.inf, np.inf)
+        if self.groundtype == GroundType.TERRAIN:
+            return None
         return (self.water_level, *self._water_span)
 
     def _validate_depths(self):
@@ -166,11 +226,23 @@ class Ground:
         if not 0 <= self.water_offset < self.depth:
             raise ValueError("water_offset must be >= 0 and smaller than depth.")
 
+    def _terrain_height(self, x):
+        """base height plus contribution of placed features"""
+        x = np.asarray(x, dtype=float)
+        return self.height + self._feature_offset(x)
+
     def _terrain_profile(self, x_min, x_max):
         """function to derive vertices of the land surface from x_min to x_max"""
         low, high = -1e9, 1e9
         if self.groundtype == GroundType.COMMON:
             return [(x_min, self.height), (x_max, self.height)]
+        if self.groundtype == GroundType.TERRAIN:
+            if not self.features:
+                return [(x_min, self.height), (x_max, self.height)]
+
+            centres = [f.position for f in self.features if x_min < f.position < x_max]
+            xs = np.unique(np.concatenate((np.linspace(x_min, x_max, self.terrain_resolution), centres)))
+            return list(zip(xs, self._terrain_height(xs)))
         if self.groundtype == GroundType.RIVER:
             x0, x1 = self.river_x
             points = [(low, self.height), (x0, self.height), (x0 + self._bank_dx, self.height - self.depth), (x1 - self._bank_dx, self.height - self.depth), (x1, self.height), (high, self.height)]
@@ -178,13 +250,23 @@ class Ground:
             points =  [(low, self.height), (self.coast_x, self.height), (self.coast_x + self._bank_dx, self.height - self.depth), (high, self.height - self.depth)]
         else: 
             points = [(low, self.height - self.depth), (self.coast_x - self._bank_dx, self.height - self.depth), (self.coast_x, self.height), (high, self.height)]
-        return self._clip_profile(points, x_min, x_max)
+
+        base = self._clip_profile(points, x_min, x_max)
+        if not self.features:
+            return base
+
+        xs_base = [p[0] for p in base]
+        ys_base = [p[1] for p in base]
+        centres = [f.position for f in self.features if x_min < f.position < x_max]
+        xs = np.unique(np.concatenate((np.linspace(x_min, x_max, self.terrain_resolution), xs_base, centres)))
+        base_y = np.interp(xs, xs_base, ys_base)
+        return list(zip(xs, base_y + self._feature_offset(xs))) 
      
     def _surface_profile(self, x_min, x_max):
         """function to dervice vertices of the surface profile from x_min to x_max"""
         low, high = -1e9, 1e9
-        if self.groundtype == GroundType.COMMON:
-            return [(x_min, self.height), (x_max, self.height)]
+        if self.groundtype in [GroundType.COMMON, GroundType.TERRAIN]:
+            return self._terrain_profile(x_min, x_max)
         s0, s1 = self._water_span
         if self.groundtype == GroundType.RIVER:
             points = [(low, self.height), (self.river_x[0], self.height), (s0, self.water_level), (s1, self.water_level), (self.river_x[1], self.height), (high, self.height)]
@@ -203,13 +285,52 @@ class Ground:
         elif self.sea_side == 'right':
             return [(s0, self.water_level), (self.coast_x + self._bank_dx, self.height - self.depth), (x_max, self.height - self.depth), (x_max, self.water_level)]
         return [(x_min, self.water_level), (x_min, self.height - self.depth), (self.coast_x - self._bank_dx, self.height - self.depth), (s1, self.water_level)]
+
+    def _feature_offset(self, x):
+        """combined contribution of every placed feature at x, zeroed out over water"""
+        x = np.asarray(x, dtype=float)
+        total = sum((f.profile(x) for f in self.features), np.zeros_like(x))
+
+        if self.groundtype == GroundType.RIVER:
+            x0, x1 = self.river_x
+            total = np.where((x > x0) & (x < x1), 0.0, total)
+        elif self.groundtype == GroundType.COAST:
+            if self.sea_side == 'right':
+                total = np.where(x >= self.coast_x, 0.0, total)
+            else:
+                total = np.where(x <= self.coast_x, 0.0, total)
+
+        return total
+
+
+    def height_at(self, x):
+        """returns height of the land surface at x"""
+        x = np.asarray(x, dtype=float)
+        if self.groundtype == GroundType.COMMON:
+            y = np.full_like(x, self.height)
+        elif self.groundtype == GroundType.TERRAIN:
+            y = self._terrain_height(x)
+        else:
+            profile = self._terrain_profile(np.min(x) - 1, np.max(x) + 1)
+            y = np.interp(x, [p[0] for p in profile], [p[1] for p in profile])
+        return float(y) if y.ndim == 0 else y
+
+    def add_feature(self, feature: 'TerrainFeature'):
+        """places a terrain feature on a Terrain ground. Returns the Ground, in order to be able to chain calls."""
+        if self.groundtype == GroundType.COMMON:
+            raise ValueError("Terrain features can not be added to 'Common' ground type.")
+        if not isinstance(feature, TerrainFeature):
+            raise TypeError("Only TerrainFeature objects can be added to the Terrain.")
+        self.features.append(feature)
+        return self
         
     def plot(self, ax, 
              x_limits: tuple = None,
              color : str = 'black', linewidth : float = 1, linestyle : str = '-',
              water_color: str = 'lightblue', water_alpha: float = 0.6, 
              surface_color: str = 'lightblue', surface_linewidth: float = 1, surface_linestyle: str = '-',
-             n_waves: int = 0, wave_length: float = 3, wave_height: float = 0.4, wave_cycles: float = 0.3, n_rows: int = 1):
+             n_waves: int = 0, wave_length: float = 3, wave_height: float = 0.4, wave_cycles: float = 0.3, n_rows: int = 1,
+             terrain_fill_color: str = 'lightgray', terrain_fill_alpha: float = 0.5, terrain_fill_depth: float = 5):
         """Draws the ground"""
         if self.groundtype == GroundType.COMMON:
             # plot the ground as a simple line
@@ -221,6 +342,16 @@ class Ground:
         x_min, x_max = min(x_limits), max(x_limits)
 
         terrain = self._terrain_profile(x_min, x_max)
+
+        if self.groundtype == GroundType.TERRAIN:
+            xs, ys = zip(*terrain)
+
+            if terrain_fill_color is not None:
+                ax.fill_between(xs, self.height - terrain_fill_depth - max(0, self.height - min(ys)), ys, 
+                                color=terrain_fill_color, alpha=terrain_fill_alpha, linewidth=0, zorder=0.6)
+                ax.plot(xs, ys, color=color, linewidth=linewidth, linestyle=linestyle, zorder=2)
+                return 
+
         water = self._water_polygon(x_min, x_max)
 
         # water surface

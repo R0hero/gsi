@@ -14,6 +14,19 @@ class Satellite:
         self.position = position
         self.rotation = rotation
 
+    @staticmethod
+    def _contiguous_runs(mask):
+        """yields start and end index inclusive for each contiguous run of True in mask"""
+        start = None
+        for i, hidden in enumerate(mask):
+            if hidden and start is None:
+                start = i
+            elif not hidden and start is not None:
+                yield (start, i - 1)
+                start = None
+        if start is not None:
+            yield (start, len(mask) - 1)
+
     def _rotate_element(self, ax, patch, angle, center):
         """Applies a rotation transformation to the given patch"""
         transform = mtransforms.Affine2D().rotate_deg_around(center[0], center[1], angle) + ax.transData
@@ -130,11 +143,13 @@ class Satellite:
                             rounding_point2[1] + (radius) * np.sin(right_angle))
         
         # calculate slope to find points on side
-        if (rounding_point1[0] - ground_point1[0]) != 0:
+        left_vertical = (rounding_point1[0] - ground_point1[0]) == 0
+        right_vertical = (rounding_point2[0] - ground_point2[0]) == 0
+        if not left_vertical:
             slope_left = (rounding_point1[1] - ground_point1[1])/(rounding_point1[0] - ground_point1[0])
         else:
             slope_left = 0
-        if (rounding_point2[0] - ground_point2[0]) != 0:
+        if not right_vertical:
             slope_right = (rounding_point2[1] - ground_point2[1])/(rounding_point2[0] - ground_point2[0])
         else:
             slope_right = 0
@@ -144,11 +159,15 @@ class Satellite:
         starting_point_right = rounding_point2[1] - slope_right * rounding_point2[0]
         
         # define points to start the rounded effect
-        if slope_left != 0:
+        if left_vertical:
+            start_rounding_left_x = rounding_point1[0]
+        elif slope_left != 0:
             start_rounding_left_x = (new_center_left[1] - starting_point_left) / slope_left
         else:
             start_rounding_left_x = new_center_left[0]
-        if slope_right != 0:
+        if right_vertical:
+            start_rounding_right_x = rounding_point2[0]
+        elif slope_right != 0:
             start_rounding_right_x = (new_center_right[1] - starting_point_right) / slope_right
         else:
             start_rounding_right_x = new_center_right[0]
@@ -171,6 +190,30 @@ class Satellite:
         arc_x_right, arc_y_right = self._generate_arc(start_rounding_right, end_rounding_right, rounding_point2, n_points)
 
         return arc_x_left, arc_y_left, arc_x_right, arc_y_right
+
+    def _terrain_stamp_polygon(self, seg_x, seg_ground_y, depth, radius, n_points, round_left=True, round_right=True):
+        """helper function to mark footprint under a stretch of terrain with its bottom corners rounded by _round_corners"""
+        seg_x = np.asarray(seg_x, dtype=float)
+        seg_ground_y = np.asarray(seg_ground_y, dtype=float)
+        x0, x1 = seg_x[0], seg_x[-1]
+
+        radius = min(radius, np.hypot(x1 - x0, depth) / 2)
+
+        arc_x_left, arc_y_left, arc_x_right, arc_y_right = self._round_corners([x0, x1, x1, x0], [-depth, -depth, 0, 0], radius, n_points)
+
+        left = list(zip(arc_x_left, arc_y_left) if round_left else [(x0, -depth)])
+        right = list(zip(arc_x_right[::-1], arc_y_right[::-1]) if round_right else [(x1, -depth)])
+
+        inner = seg_x[(seg_x > left[-1][0]) & (seg_x < right[0][0])]
+        bottom = [(x, -depth) for x in inner]
+
+        top = [(x, 0.0) for x in seg_x[::-1]]
+
+        path = [(x0, 0.0)] + left + bottom + right + top
+        xs = np.array([point[0] for point in path])
+        ys = np.array([point[1] for point in path])
+
+        return xs, ys + np.interp(xs, seg_x, seg_ground_y)
 
     def _point_to_segment_distance(self, point, seg_start, seg_end):
         """Returns the minimum distance from a point to a line segment."""
@@ -238,6 +281,42 @@ class Satellite:
 
         ax.plot([start[0], hit_point[0]], [start[1], hit_point[1]], color=color, linewidth=linewidth, linestyle=linestyle, zorder=zorder)
         ax.plot([hit_point[0], end[0]], [hit_point[1], end[1]], color=attenuated_color, linewidth=linewidth, linestyle=attenuated_linestyle, zorder=zorder)
+
+    def _terrain_shadow_mask(self, xs, ys):
+        """helper function to create a shadow mask behind terrain based on the satellites position"""
+        xs = np.asarray(xs, dtype=float)
+        ys = np.asarray(ys, dtype=float)
+
+        dx = xs - self.position[0]
+        dy = ys - self.position[1]
+
+        with np.errstate(divide='ignore', invalid='ignore'):
+            slope = dy / dx
+
+        hidden = np.zeros(len(xs), dtype=bool)
+        hiding_slope = np.full(len(xs), np.nan)
+
+        right = np.where(dx > 0)[0]
+        right = right[np.argsort(xs[right])]
+        running_max = -np.inf
+        for i in right:
+            if slope[i] < running_max:
+                hidden[i] = True
+                hiding_slope[i] = running_max
+            else:
+                running_max = slope[i]
+
+        left = np.where(dx < 0)[0]
+        left = left[np.argsort(-xs[left])]
+        running_min = np.inf
+        for i in left:
+            if slope[i] > running_min:
+                hidden[i] = True
+                hiding_slope[i] = running_min
+            else:
+                running_min = slope[i]
+
+        return hidden, hiding_slope
 
     def plot(self, ax, 
              body_radius : float = 1, buffer_distance : float = 0.5, arm_width : float = 3, arm_height : float = 1.25, scale : float = 1):
@@ -387,7 +466,11 @@ class Satellite:
                 receiver = targets[1]
 
                 # surface which can reflect (whole ground for Common, only the water for River/Coast)
-                level, surface_x_start, surface_x_end = ground.reflective_surface
+                surface = ground.reflective_surface
+
+                if surface is None:
+                    return
+                level, surface_x_start, surface_x_end = surface
 
                 if self.position[1] > level and receiver.position[1] > level:
                     reflection_x = receiver.position[0] + (self.position[0] - receiver.position[0]) * (receiver.position[1] - level) / ((receiver.position[1] - level) + (self.position[1] - level))
@@ -587,7 +670,8 @@ class Satellite:
                         fill_color : str = 'lightblue', fill_alpha : float = 0.5,
                         plot_edge_lines : bool = True, shadow_linestyle : str = '--', shadow_linewidth : float = 0.8,
                         shadow_color : str = 'red', shadow_alpha : float = 0.3,
-                        draw_ground : bool = True, ground_offset : float = 5, ground_footprint_offset : float = 3, corner_radius : float = 3, n_points_arcs : int = 15):
+                        draw_ground : bool = True, ground_offset : float = 5, ground_footprint_offset : float = 3, corner_radius : float = 3, n_points_arcs : int = 15,
+                        terrain_shadow: bool = True):
         """Draws the footprint of the satellite"""
         
         # extract plot limits from current plot
@@ -719,3 +803,27 @@ class Satellite:
 
             # fill out with color
             ax.fill(below_ground_vertice_x, below_ground_vertice_y, color=fill_color, alpha=fill_alpha, zorder=0)
+
+        if terrain_shadow and ground.features:
+            terrain = ground._terrain_profile(x_limits[0], x_limits[1])
+            xs = np.array([p[0] for p in terrain])
+            ys = np.array([p[1] for p in terrain])
+
+            order = np.argsort(xs)
+            xs, ys = xs[order], ys[order]
+
+            hidden, hiding_slope = self._terrain_shadow_mask(xs, ys)
+
+            for start, end in self._contiguous_runs(hidden):
+                seg_x = xs[start:end + 1]
+                seg_ground_y = ys[start:end + 1]
+
+                ray_slope = hiding_slope[start]
+                ray_y = self.position[1] + ray_slope * (seg_x - self.position[0])
+
+                ax.fill_between(seg_x, seg_ground_y, ray_y, color=shadow_color, alpha=shadow_alpha, linewidth=0, zorder=0.7)
+                if plot_edge_lines:
+                    ax.plot([seg_x[0], seg_x[-1]], [ray_y[0], ray_y[-1]], color=shadow_color, alpha=shadow_alpha, linestyle=shadow_linestyle, linewidth=shadow_linewidth, zorder=1)
+                if draw_ground and seg_x[-1] > seg_x[0]:
+                    stamp_x, stamp_y = self._terrain_stamp_polygon(seg_x, seg_ground_y, ground_footprint_offset, corner_radius, n_points_arcs, round_left=start > 0, round_right=end < len(xs) - 1)
+                    ax.fill(stamp_x, stamp_y, color=shadow_color, alpha=shadow_alpha, linewidth=0, zorder=0.65)
