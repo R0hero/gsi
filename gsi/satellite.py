@@ -263,27 +263,30 @@ class Satellite:
         with np.errstate(divide='ignore', invalid='ignore'):
             slope = dy / dx
 
-        visible = np.ones(len(xs), dtype=bool)
+        hidden = np.zeros(len(xs), dtype=bool)
+        hiding_slope = np.full(len(xs), np.nan)
 
         right = np.where(dx > 0)[0]
         right = right[np.argsort(xs[right])]
         running_max = -np.inf
         for i in right:
             if slope[i] < running_max:
-                visible[i] = False
+                hidden[i] = True
+                hiding_slope[i] = running_max
             else:
                 running_max = slope[i]
 
         left = np.where(dx < 0)[0]
-        left = left[np.argsort(xs[left])]
+        left = left[np.argsort(-xs[left])]
         running_min = np.inf
         for i in left:
             if slope[i] > running_min:
-                visible[i] = False
+                hidden[i] = True
+                hiding_slope[i] = running_min
             else:
                 running_min = slope[i]
 
-        return ~visible
+        return hidden, hiding_slope
 
     def plot(self, ax, 
              body_radius : float = 1, buffer_distance : float = 0.5, arm_width : float = 3, arm_height : float = 1.25, scale : float = 1):
