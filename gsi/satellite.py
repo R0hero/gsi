@@ -191,6 +191,30 @@ class Satellite:
 
         return arc_x_left, arc_y_left, arc_x_right, arc_y_right
 
+    def _terrain_stamp_polygon(self, seg_x, seg_ground_y, depth, radius, n_points, round_left=True, round_right=True):
+        """helper function to mark footprint under a stretch of terrain with its bottom corners rounded by _round_corners"""
+        seg_x = np.asarray(seg_x, dtype=float)
+        seg_ground_y = np.asarray(seg_ground_y, dtype=float)
+        x0, x1 = seg_x[0], seg_x[-1]
+
+        radius = min(radius, np.hypot(x1 - x0, depth) / 2)
+
+        arc_x_left, arc_y_left, arc_x_right, arc_y_right = self._round_corners([x0, x1, x1, x0], [-depth, -depth, 0, 0], radius, n_points)
+
+        left = list(zip(arc_x_left, arc_y_left) if round_left else [(x0, -depth)])
+        right = list(zip(arc_x_right, arc_y_right) if round_right else [(x1, -depth)])
+
+        inner = seg_x[(seg_x > left[-1][0]) & (seg_x < right[0][0])]
+        bottom = [(x, -depth) for x in inner]
+
+        top = [(x, 0.0) for x in seg_x[::-1]]
+
+        path = [(x0, 0.0)] + left + bottom + right + top
+        xs = np.array([point[0] for point in path])
+        ys = np.array([point[1] for point in path])
+
+        return xs, ys + np.interp(xs, seg_x, seg_ground_y)
+
     def _point_to_segment_distance(self, point, seg_start, seg_end):
         """Returns the minimum distance from a point to a line segment."""
         # ensure numpy arrays for easier computation
