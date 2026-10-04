@@ -664,7 +664,7 @@ class Satellite:
                                 for start, end in zip(start_points, end_points):
                                     ax.plot([start[0], end[0]], [start[1], end[1]], color=color, linewidth=linewidth, linestyle=linestyle, zorder=1)
 
-    def draw_footprint(self, ax, ground : Ground, *targets : Blob | Tree,
+    def draw_footprint(self, ax, ground : Ground, *targets : Blob | Tree | Building,
                         x_limits = None,
                         edge_color : str = 'black', edge_linestyle : str = '--', edge_linewidth : float = 1,
                         fill_color : str = 'lightblue', fill_alpha : float = 0.5,
@@ -702,7 +702,7 @@ class Satellite:
         # loop through all targets
         for target in targets:
             # check if targets are Blobs
-            if not isinstance(target, Blob) and not isinstance(target, Tree):
+            if not isinstance(target, Blob) and not isinstance(target, Tree) and not isinstance(target, Building):
                 continue
             target_geometry = target.get_geometry()
 
