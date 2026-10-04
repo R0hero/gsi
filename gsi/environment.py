@@ -24,6 +24,11 @@ class Building:
             raise ValueError(f"Unknown reflection type '{reflection}'. Use {valid_types}.")
         
         self.reflection = ReflectionType._value2member_map_[reflection]
+        self.geometry = box(position[0], position[1], position[0] + width, position[1] + height)
+
+    def get_geometry(self):
+        """function to return the silhouette of the building as a shapely polygon"""
+        return self.geometry
 
     def plot(self, ax,
             door_height : float = 5, door_width : float = 3, 

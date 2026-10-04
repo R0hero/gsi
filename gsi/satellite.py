@@ -664,7 +664,7 @@ class Satellite:
                                 for start, end in zip(start_points, end_points):
                                     ax.plot([start[0], end[0]], [start[1], end[1]], color=color, linewidth=linewidth, linestyle=linestyle, zorder=1)
 
-    def draw_footprint(self, ax, ground : Ground, *targets : Blob | Tree,
+    def draw_footprint(self, ax, ground : Ground, *targets : Blob | Tree | Building,
                         x_limits = None,
                         edge_color : str = 'black', edge_linestyle : str = '--', edge_linewidth : float = 1,
                         fill_color : str = 'lightblue', fill_alpha : float = 0.5,
@@ -702,20 +702,21 @@ class Satellite:
         # loop through all targets
         for target in targets:
             # check if targets are Blobs
-            if not isinstance(target, Blob) and not isinstance(target, Tree):
+            if not isinstance(target, Blob) and not isinstance(target, Tree) and not isinstance(target, Building):
                 continue
             target_geometry = target.get_geometry()
 
-            target_polygon = target_geometry.convex_hull
-
             # define the polygon and check if they intersect with the footprint
-            intersection = footprint_polygon.intersection(target_polygon)
+            target_geometry = footprint_polygon.intersection(target_geometry)
 
             # check if there is an intersection
-            if intersection.is_empty:
+            if target_geometry.is_empty or target_geometry.area < 1e-9:
                 continue
 
-            hull_coords = list(target_polygon.exterior.coords)[:-1]
+            target_polygon = target_geometry.convex_hull
+            hull_coords = [(x, y) for x, y in list(target_polygon.exterior.coords)[:-1] if y < self.position[1] - 1e-9]
+            if len(hull_coords) < 2:
+                continue
             angles = [np.arctan2(y - self.position[1], x - self.position[0]) for x,y in hull_coords]
             idx_left_most = np.argmin(angles)
             idx_right_most = np.argmax(angles)
