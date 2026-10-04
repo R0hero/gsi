@@ -3,13 +3,14 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 import os 
 from dataclasses import dataclass
+from typing import Callable
 
 GOLDEN_DIR = Path(__file__).parent / "golden"
 
 @dataclass
 class Scene:
-    draw: callable
-    act: callable
+    draw: Callable
+    act: Callable
     xlim: tuple = (0, 100)
     ylim: tuple = (-10, 110)
 
