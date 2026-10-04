@@ -3,7 +3,7 @@ import matplotlib.pyplot
 from pathlib import Path
 import os 
 
-GOLDEN_DIR = Path(f'tests{os.sep}golden{os.sep}')
+GOLDEN_DIR = Path(__file__).parent / "golden"
 
 def snapshot(ax) -> dict[str, np.ndarray]:
     arrays = {}
