@@ -17,3 +17,10 @@ def save_golden(name: str, fig, ax) -> None:
     os.makedirs(GOLDEN_DIR, exist_ok=True)
     np.savez_compressed(GOLDEN_DIR / f"{name}.npz", **snapshot(ax))
     fig.savefig(GOLDEN_DIR / f"{name}.png", dpi=100)
+
+def assert_matches_golden(name: str, ax) -> None:
+    got = snapshot(ax)
+    golden = np.load(GOLDEN_DIR / f"{name}.npz")
+    assert set(got) == set(golden.files)
+    for key in got:
+        np.testing.assert_allclose(got[key], golden[key], atol=1e-9)
