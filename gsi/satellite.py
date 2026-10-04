@@ -706,16 +706,17 @@ class Satellite:
                 continue
             target_geometry = target.get_geometry()
 
-            target_polygon = target_geometry.convex_hull
-
             # define the polygon and check if they intersect with the footprint
-            intersection = footprint_polygon.intersection(target_polygon)
+            target_geometry = footprint_polygon.intersection(target_geometry)
 
             # check if there is an intersection
-            if intersection.is_empty:
+            if target_geometry.is_empty or target_geometry.area < 1e-9:
                 continue
 
-            hull_coords = list(target_polygon.exterior.coords)[:-1]
+            target_polygon = target_geometry.convex_hull
+            hull_coords = [(x, y) for x, y in list(target_polygon.exterior.coords)[:-1] if y < self.position[1] - 1e-9]
+            if len(hull_coords) < 2:
+                continue
             angles = [np.arctan2(y - self.position[1], x - self.position[0]) for x,y in hull_coords]
             idx_left_most = np.argmin(angles)
             idx_right_most = np.argmax(angles)
