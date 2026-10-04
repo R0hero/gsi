@@ -32,7 +32,7 @@ def render(scene: Scene):
         snap[f'patch{i}'] = patch.get_xy()
     return fig, ax, snap
 
-def save_golden(name: str, fig, ax, snap) -> None:
+def save_golden(name: str, fig, snap) -> None:
     os.makedirs(GOLDEN_DIR, exist_ok=True)
     np.savez_compressed(GOLDEN_DIR / f"{name}.npz", **snap)
     fig.savefig(GOLDEN_DIR / f"{name}.png", dpi=100)
