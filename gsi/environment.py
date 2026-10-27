@@ -356,14 +356,7 @@ class Ground:
     
     def height_at(self, x):
         """returns height of the land surface at x"""
-        x = np.asarray(x, dtype=float)
-        if self.groundtype == GroundType.COMMON:
-            y = np.full_like(x, self.height)
-        elif self.groundtype == GroundType.TERRAIN:
-            y = self._terrain_height(x)
-        else:
-            profile = self._terrain_profile(np.min(x) - 1, np.max(x) + 1)
-            y = np.interp(x, [p[0] for p in profile], [p[1] for p in profile])
+        y = self._land_height(x)
         return float(y) if y.ndim == 0 else y
 
     def add_feature(self, feature: 'TerrainFeature'):
