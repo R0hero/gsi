@@ -327,6 +327,16 @@ class Ground:
         xs, ys = zip(*self._base_points())
         return np.interp(x, xs, ys) + self._feature_offset(x)
 
+    def _blocking_height(self, x):
+        """height of the surface a signal can not pass through: land or the water surface over water"""
+        x = np.asarray(x, dtype=float)
+        y = self._land_height(x)
+        if self._water_span is not None:
+            in_water = (x >= self._water_span[0]) & (x <= self._water_span[1])
+            y = np.where(in_water, np.maximum(y, self.water_level), y)
+        return y
+
+
     def height_at(self, x):
         """returns height of the land surface at x"""
         x = np.asarray(x, dtype=float)
