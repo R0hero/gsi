@@ -99,3 +99,30 @@ register("signal_2bld_reflection_blocked", signal_scene((5, 62), left_bld(h=55),
 register("signal_2bld_reflection_blocked_swapped", signal_scene((5, 62), right_bld(), left_bld(h=55), rx()))
 
 register("signal_2bld_equal_distance", signal_scene((45, 90), bld(x=10, h=20, w=15), bld(x=65, h=20, w=15), rx()))
+
+# <--- terrain blocking signal --->
+_g = terrain(hill())
+register("signal_rx_terrain_clear", signal_scene((10, 90), rx_on(_g, 85), _g))
+register("signal_rx_terrain_blocked", signal_scene((10, 25), rx_on(_g, 85), _g))
+_g = terrain(hill(h=25, shape="Mountain"))
+register("signal_rx_terrain_mountain_blocked", signal_scene((10, 30), rx_on(_g, 85), _g))
+_g = terrain(hill(x=50, h=20, w=30, shape="Valley"))
+register("signal_rx_terrain_valley_blocked_low_sat", signal_scene((10, 12), rx_on(_g, 50), _g, ylim=(-30, 90)))
+_g = terrain(hill(x=50, h=20, w=30, shape="Valley"))
+register("signal_rx_terrain_valley_clear", signal_scene((50, 90), rx_on(_g, 50), _g, ylim=(-30, 90)))
+_g = terrain(hill(x=50, h=20, w=30, shape="Valley"))
+register("signal_rx_terrain_valley_clear_over_rim", signal_scene((20, 25), rx_on(_g, 50), _g, ylim=(-30, 90)))
+_g = terrain(hill(), hill(x=85, h=10, w=14))
+register("signal_rx_terrain_two_hills_blocked", signal_scene((10, 25), rx_on(_g, 95), _g))
+register("signal_rx_ground_common_clear", signal_scene((10, 60), rx(), Ground()))
+
+# <--- tree attenuating, then hill blocks signal --->
+_g = terrain(hill())
+register("signal_rx_terrain_tree_then_blocked", signal_scene((10, 25), rx_on(_g, 85), _g, tree(x=25, h=20)))
+
+# <--- reflection from water and terrain stops reflected path or incoming ray --->
+_g = Ground(groundtype="Coast", coast_x=40, features=[hill(x=33, h=18, w=12)])
+register("signal_coast_reflected_blocked_by_hill", signal_scene((90, 60), _g, Drone((25, 25))))
+register("signal_coast_reflected_hill_clear", signal_scene((90, 60), _g, Drone((25, 40))))
+_g = Ground(groundtype="River", river_x=(40, 70), features=[hill(x=82, h=22, w=14)])
+register("signal_river_incoming_blocked_by_hill", signal_scene((95, 30), _g, Drone((20, 20))))
