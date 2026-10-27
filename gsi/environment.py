@@ -307,6 +307,17 @@ class Ground:
 
         return total
 
+    def _base_points(self):
+        """breakpoints of the piecewise-linear base profile for River/Coast before features"""
+        low, high = -1e12, 1e12
+        if self.groundtype == GroundType.RIVER:
+            x0, x1 = self.river_x
+            return [(low, self.height), (x0, self.height), (x0 + self._bank_dx, self.height - self.depth), (x1 - self._bank_dx, self.height - self.depth), (x1, self.height), (high, self.height)]
+        if self.sea_side == 'right':
+            return [(low, self.height), (self.coast_x, self.height), (self.coast_x + self._bank_dx, self.height - self.depth), (high, self.height - self.depth)]
+        return [(low, self.height - self.depth), (self.coast_x - self._bank_dx, self.height - self.depth), (self.coast_x, self.height), (high, self.height)]
+
+
 
     def height_at(self, x):
         """returns height of the land surface at x"""
