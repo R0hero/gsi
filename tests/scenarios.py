@@ -41,6 +41,14 @@ def tree(x=10, y=0, h=15, **k):
 def drone(x=45, y=20, **k):
     return Drone((x,y), **k)
 
+def hill(x=50, h=15, w=30, shape="Hill", **k):
+    return TerrainFeature(x, h, w, shape=shape, **k)
+
+def terrain(*features, **k):
+    return Ground(groundtype="Terrain", features=list(features), **k)
+
+def rx_on(ground, x, h=2, **k):
+    return Receiver((x, ground.height_at(x) + h), 2, **k)
 
 # <--- single receiver with environment --->
 register("signal_rx_only", signal_scene((10, 80), rx()))
