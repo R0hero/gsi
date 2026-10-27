@@ -33,7 +33,7 @@ def left_bld(**k):
     return Building((10, 0), k.pop("h", 20), 12, **k)
 
 def right_bld(**k):
-    return Building((70, 10), k.pop("h", 35), 15, **k)
+    return Building((70, 0), k.pop("h", 35), 15, **k)
 
 def tree(x=10, y=0, h=15, **k):
     return Tree((x,y), h, **k)
