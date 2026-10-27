@@ -336,7 +336,24 @@ class Ground:
             y = np.where(in_water, np.maximum(y, self.water_level), y)
         return y
 
+    def blocking_profile(self, x_min, x_max):
+        """method to return the blocking surface between x_min and x_max. Terrain features are sampled densely, flat stretches are only represented by their end points"""
+        x_min, x_max = min(x_min, x_max), max(x_min, x_max)
+        xs = [x_min, x_max]
 
+        for feature in self.features:
+            left, right = feature.position - feature.width / 2, feature.position + feature.width / 2
+            if right < x_min or left > x_max:
+                continue
+            xs.extend(np.linspace(max(left, x_min), min(right, x_max), self.terrain_resolution))
+
+        if self.groundtype in [GroundType.RIVER, GroundType.COAST]:
+            xs.extend(p[0] for p in self._base_points()[1:-1])
+            xs.extend(s for s in self._water_span if np.isfinite(s))
+
+        xs = np.unique(np.clip(np.asarray(xs, dtype=float), x_min, x_max))
+        return xs, self._blocking_height(xs)
+    
     def height_at(self, x):
         """returns height of the land surface at x"""
         x = np.asarray(x, dtype=float)
