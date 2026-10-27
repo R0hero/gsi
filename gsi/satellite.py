@@ -517,6 +517,14 @@ class Satellite:
                             receiver_position = receiver._get_signal_endpoint()
                             self._plot_signal_line(ax, intersection, receiver_position, **line_style)
 
+            elif isinstance(targets[0], Receiver) and isinstance(targets[1], Ground):
+                # if Receiver is first and Ground is second, check if the terrain blocks the direct signal
+                receiver = targets[0]
+                ground = targets[1]
+                receiver_position = receiver._get_signal_endpoint()
+                self._plot_signal_line(ax, self.position, receiver_position, trees=trees, ground=ground, color=color, linewidth=linewidth, linestyle=linestyle,
+                                       attenuated_color=attenuated_color, attenuated_linestyle=attenuated_linestyle, zorder=zorder_signal_to_tree)
+
             elif isinstance(targets[0], Receiver) and isinstance(targets[1], Building):
                 # if Receiver is first and Building is second, check if the building blocks the signal
                 receiver = targets[0]
