@@ -7,7 +7,7 @@ def register(name, scene):
     assert name not in SCENARIOS, f'duplicate scenario {name}'
     SCENARIOS[name] = scene
 
-def signal_scene(sat_pos, *targets, plot_kw=None, **kw):
+def signal_scene(sat_pos, *targets, plot_kw=None, ylim=None, **kw):
     sat = Satellite(sat_pos)
     plot_kw = plot_kw or {}
 
@@ -20,7 +20,7 @@ def signal_scene(sat_pos, *targets, plot_kw=None, **kw):
     def act(ax):
         sat.draw_signal(ax, *targets, **kw)
 
-    return Scene(draw, act)
+    return Scene(draw, act, **({'ylim': ylim}) if ylim else {})
 
 # statics
 def rx(x=45, y=2, **k):
