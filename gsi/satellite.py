@@ -508,11 +508,14 @@ class Satellite:
 
                     if surface_x_start <= reflection_x <= surface_x_end:
                         intersection = (reflection_x, level)
-                        # line between satellite and ground
-                        ax.plot([self.position[0], intersection[0]], [self.position[1], intersection[1]], color=color, linewidth=linewidth, linestyle=linestyle, zorder=1)
-                        # line between ground and receiver
-                        receiver_position = receiver._get_signal_endpoint()
-                        ax.plot([intersection[0], receiver_position[0]], [intersection[1], receiver_position[1]], color=color, linewidth=linewidth, linestyle=linestyle, zorder=1)
+                        line_style = dict(trees=trees, ground=ground, color=color, linewidth=linewidth, linestyle=linestyle,
+                                          attenuated_color=attenuated_color, attenuated_linestyle=attenuated_linestyle, zorder=zorder_signal_to_tree)
+                        # line between satellite and ground, stopped by terrain in the way
+                        reached = self._plot_signal_line(ax, self.position, intersection, **line_style)
+                        # line between ground and receiver, stopped by terrain in the way
+                        if reached:
+                            receiver_position = receiver._get_signal_endpoint()
+                            self._plot_signal_line(ax, intersection, receiver_position, **line_style)
 
             elif isinstance(targets[0], Receiver) and isinstance(targets[1], Building):
                 # if Receiver is first and Building is second, check if the building blocks the signal
