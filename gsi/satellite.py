@@ -27,6 +27,31 @@ class Satellite:
         if start is not None:
             yield (start, len(mask) - 1)
 
+    @staticmethod
+    def _ground_hit(start, end, ground, tolerance=1e-3):
+        """returns the first point (from start) where the segment hits the ground surface"""
+        if ground is None:
+            return None
+        start = np.asarray(start, dtype=float)
+        end = np.asarray(end, dtype=float)
+
+        xs, ys = ground.blocking_profile(start[0], end[0])
+        if len(xs) < 2:
+            return None
+        surface = LineString(zip(xs, ys))
+        segment = LineString([start, end])
+        if not segment.intersects(surface):
+            return None
+        intersection = segment.intersection(surface)
+
+        geoms = getattr(intersection, 'geoms', [intersection])
+        points = [np.array(c) for geom in geoms for c in geom.coords]
+
+        hits = [p for p in points if np.hypot(*(p - start)) > tolerance and np.hypot(*(p - end)) > tolerance]
+        if not hits:
+            return None
+        return min(hits, key=lambda p: np.hypot(*(p - start)))
+
     def _rotate_element(self, ax, patch, angle, center):
         """Applies a rotation transformation to the given patch"""
         transform = mtransforms.Affine2D().rotate_deg_around(center[0], center[1], angle) + ax.transData
