@@ -317,7 +317,15 @@ class Ground:
             return [(low, self.height), (self.coast_x, self.height), (self.coast_x + self._bank_dx, self.height - self.depth), (high, self.height - self.depth)]
         return [(low, self.height - self.depth), (self.coast_x - self._bank_dx, self.height - self.depth), (self.coast_x, self.height), (high, self.height)]
 
-
+    def _land_height(self, x):
+        """exact height of the land surface at x, independent of plot resolution"""
+        x = np.asarray(x, dtype=float)
+        if self.groundtype == GroundType.COMMON:
+            return np.full_luke(x, self.height)
+        if self.groundtype == GroundType.TERRAIN:
+            return self._terrain_height(x)
+        xs, ys = zip(*self._base_points())
+        return np.interp(x, xs, ys) + self._feature_offset(x)
 
     def height_at(self, x):
         """returns height of the land surface at x"""
