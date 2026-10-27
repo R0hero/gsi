@@ -259,7 +259,7 @@ class Satellite:
         return np.linalg.norm(point - closest), closest
 
     def _plot_signal_line(self, ax, start, end, 
-                          trees=None, color='black', linewidth=1, linestyle='-',
+                          trees=None, ground= None, color='black', linewidth=1, linestyle='-',
                           attenuated_color='darkolivegreen', attenuated_linestyle=None, zorder=1):
         """helper function to determining if a signal line should be attenuated when passing through a tree."""
         if attenuated_linestyle is None:
@@ -267,9 +267,14 @@ class Satellite:
         start = np.asarray(start, dtype=float)
         end = np.asarray(end, dtype=float)
 
+        hit = self._ground_hit(start, end, ground)
+        reached = hit is None
+        if not reached:
+            end = hit
+
         if not trees:
             ax.plot([start[0], end[0]], [start[1], end[1]], color=color, linewidth=linewidth, linestyle=linestyle, zorder=zorder)
-            return 
+            return reached
         
         line = LineString([start, end])
 
@@ -300,12 +305,13 @@ class Satellite:
 
         if closest_distance is None:
             ax.plot([start[0], end[0]], [start[1], end[1]], color=color, linewidth=linewidth, linestyle=linestyle, zorder=zorder)
-            return
+            return reached
 
         hit_point = np.array(line.interpolate(closest_distance).coords[0])
 
         ax.plot([start[0], hit_point[0]], [start[1], hit_point[1]], color=color, linewidth=linewidth, linestyle=linestyle, zorder=zorder)
         ax.plot([hit_point[0], end[0]], [hit_point[1], end[1]], color=attenuated_color, linewidth=linewidth, linestyle=attenuated_linestyle, zorder=zorder)
+        return reached
 
     def _terrain_shadow_mask(self, xs, ys):
         """helper function to create a shadow mask behind terrain based on the satellites position"""
