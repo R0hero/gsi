@@ -307,17 +307,56 @@ class Ground:
 
         return total
 
+    def _base_points(self):
+        """breakpoints of the piecewise-linear base profile for River/Coast before features"""
+        low, high = -1e12, 1e12
+        if self.groundtype == GroundType.RIVER:
+            x0, x1 = self.river_x
+            return [(low, self.height), (x0, self.height), (x0 + self._bank_dx, self.height - self.depth), (x1 - self._bank_dx, self.height - self.depth), (x1, self.height), (high, self.height)]
+        if self.sea_side == 'right':
+            return [(low, self.height), (self.coast_x, self.height), (self.coast_x + self._bank_dx, self.height - self.depth), (high, self.height - self.depth)]
+        return [(low, self.height - self.depth), (self.coast_x - self._bank_dx, self.height - self.depth), (self.coast_x, self.height), (high, self.height)]
 
-    def height_at(self, x):
-        """returns height of the land surface at x"""
+    def _land_height(self, x):
+        """exact height of the land surface at x, independent of plot resolution"""
         x = np.asarray(x, dtype=float)
         if self.groundtype == GroundType.COMMON:
-            y = np.full_like(x, self.height)
-        elif self.groundtype == GroundType.TERRAIN:
-            y = self._terrain_height(x)
-        else:
-            profile = self._terrain_profile(np.min(x) - 1, np.max(x) + 1)
-            y = np.interp(x, [p[0] for p in profile], [p[1] for p in profile])
+            return np.full_luke(x, self.height)
+        if self.groundtype == GroundType.TERRAIN:
+            return self._terrain_height(x)
+        xs, ys = zip(*self._base_points())
+        return np.interp(x, xs, ys) + self._feature_offset(x)
+
+    def _blocking_height(self, x):
+        """height of the surface a signal can not pass through: land or the water surface over water"""
+        x = np.asarray(x, dtype=float)
+        y = self._land_height(x)
+        if self._water_span is not None:
+            in_water = (x >= self._water_span[0]) & (x <= self._water_span[1])
+            y = np.where(in_water, np.maximum(y, self.water_level), y)
+        return y
+
+    def blocking_profile(self, x_min, x_max):
+        """method to return the blocking surface between x_min and x_max. Terrain features are sampled densely, flat stretches are only represented by their end points"""
+        x_min, x_max = min(x_min, x_max), max(x_min, x_max)
+        xs = [x_min, x_max]
+
+        for feature in self.features:
+            left, right = feature.position - feature.width / 2, feature.position + feature.width / 2
+            if right < x_min or left > x_max:
+                continue
+            xs.extend(np.linspace(max(left, x_min), min(right, x_max), self.terrain_resolution))
+
+        if self.groundtype in [GroundType.RIVER, GroundType.COAST]:
+            xs.extend(p[0] for p in self._base_points()[1:-1])
+            xs.extend(s for s in self._water_span if np.isfinite(s))
+
+        xs = np.unique(np.clip(np.asarray(xs, dtype=float), x_min, x_max))
+        return xs, self._blocking_height(xs)
+    
+    def height_at(self, x):
+        """returns height of the land surface at x"""
+        y = self._land_height(x)
         return float(y) if y.ndim == 0 else y
 
     def add_feature(self, feature: 'TerrainFeature'):
