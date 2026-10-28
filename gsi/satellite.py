@@ -643,7 +643,7 @@ class Satellite:
                             # if intersection happens, plot the reflected signal
                             if intersection:
                                 # line between satellite and wall
-                                ax.plot([self.position[0], intersection[0]], [self.position[1], building_two.position[1] + building_two.height], color=color, linewidth=linewidth, linestyle=linestyle, zorder=1)
+                                ax.plot([self.position[0], intersection[0]], [self.position[1], building_one.position[1] + building_one.height], color=color, linewidth=linewidth, linestyle=linestyle, zorder=1)
                                 
                                 # define the angles between the diffuse rays
                                 angles = np.linspace(0, 2 * np.pi, num_rays, endpoint=False)
@@ -651,12 +651,12 @@ class Satellite:
                                 # ompute start and end points for each ray
                                 start_points = [
                                     (intersection[0] + buffer_distance * np.cos(angle),
-                                    building_two.position[1] + building_two.height + buffer_distance * np.sin(angle))
+                                    building_one.position[1] + building_one.height + buffer_distance * np.sin(angle))
                                     for angle in angles
                                 ]
                                 end_points = [
                                     (intersection[0] + (buffer_distance + line_length) * np.cos(angle),
-                                    building_two.position[1] + building_two.height + (buffer_distance + line_length) * np.sin(angle))
+                                    building_one.position[1] + building_one.height + (buffer_distance + line_length) * np.sin(angle))
                                     for angle in angles
                                 ]
 
@@ -694,12 +694,12 @@ class Satellite:
                                 # ompute start and end points for each ray
                                 start_points = [
                                     (intersection[0] + buffer_distance * np.cos(angle),
-                                    building_one.position[1] + building_one.height + buffer_distance * np.sin(angle))
+                                    building_two.position[1] + building_two.height + buffer_distance * np.sin(angle))
                                     for angle in angles
                                 ]
                                 end_points = [
                                     (intersection[0] + (buffer_distance + line_length) * np.cos(angle),
-                                    building_one.position[1] + building_one.height + (buffer_distance + line_length) * np.sin(angle))
+                                    building_two.position[1] + building_two.height + (buffer_distance + line_length) * np.sin(angle))
                                     for angle in angles
                                 ]
 
