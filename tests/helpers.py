@@ -28,6 +28,7 @@ def render(scene: Scene):
     snap = {}
     for i, line in enumerate(ax.lines[n_lines:]):
         snap[f'line{i}'] = np.column_stack(line.get_data())
+        snap[f'line{i}_style'] = np.array([str(line.get_color()), str(line.get_linestyle()), str(line.get_linewidth()), str(line.get_zorder())])
     for i, patch in enumerate(ax.patches[n_patches:]):
         snap[f'patch{i}'] = patch.get_xy()
     return fig, ax, snap
