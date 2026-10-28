@@ -42,4 +42,7 @@ def assert_matches_golden(name: str, snap) -> None:
     golden = np.load(GOLDEN_DIR / f"{name}.npz")
     assert set(snap) == set(golden.files)
     for key in snap:
-        np.testing.assert_allclose(snap[key], golden[key], atol=1e-9, err_msg=key)
+        if snap[key].dtype.kind == "U":
+            np.testing.assert_array_equal(snap[key], golden[key], err_msg=key)
+        else:
+            np.testing.assert_allclose(snap[key], golden[key], atol=1e-9, err_msg=key)
