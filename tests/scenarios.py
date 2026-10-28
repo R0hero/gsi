@@ -50,6 +50,9 @@ def terrain(*features, **k):
 def rx_on(ground, x, h=2, **k):
     return Receiver((x, ground.height_at(x) + h), 2, **k)
 
+# <--- single receiver with non-default linesyle, linecolor and linewidth
+register("signal_rx_nondefault", signal_scene((10, 80), rx(), color="red", linestyle=":", linewidth=3))
+
 # <--- single receiver with environment --->
 register("signal_rx_only", signal_scene((10, 80), rx()))
 register("signal_rx_tree_attenuated", signal_scene((10, 80), rx(), tree(x=30, h=25)))
