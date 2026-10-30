@@ -14,3 +14,9 @@ dependencies = [
     "matplotlib>=3.10.6",
     "shapely>=2.1.1",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[project.optional-dependencies]
+dev = ["pytest"]
